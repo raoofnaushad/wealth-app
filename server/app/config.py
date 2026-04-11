@@ -5,12 +5,12 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://invictus:invictus_dev@localhost:5432/invictus"
+    DATABASE_URL: str = "postgresql+asyncpg://invictus:invictus_dev@localhost:5434/invictus"
 
     # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
-    CELERY_BROKER_URL: str = "redis://localhost:6379/1"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
+    REDIS_URL: str = "redis://localhost:6380/0"
+    CELERY_BROKER_URL: str = "redis://localhost:6380/1"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6380/2"
 
     # Auth
     JWT_SECRET_KEY: str = "change-me-in-production"

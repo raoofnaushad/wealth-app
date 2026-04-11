@@ -149,7 +149,7 @@ async def seed():
                     "last": last,
                     "roles": json.dumps(module_roles),
                     "invited_by": str(RAOOF_ID),
-                    "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
+                    "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
                 },
             )
 
