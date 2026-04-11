@@ -12,6 +12,18 @@ import { RunsPage } from '@/pages/RunsPage'
 import { MeetingBriefPage } from '@/pages/MeetingBriefPage'
 import { ChatPage } from '@/pages/ChatPage'
 
+// Administration module
+import { AdminLayout } from '@/modules/admin/pages/AdminLayout'
+import { CompanyProfilePage } from '@/modules/admin/pages/CompanyProfilePage'
+import { BrandingPage } from '@/modules/admin/pages/BrandingPage'
+import { UsersPage } from '@/modules/admin/pages/UsersPage'
+import { PreferencesPage } from '@/modules/admin/pages/PreferencesPage'
+
+// My Account
+import { AccountLayout } from '@/pages/AccountLayout'
+import { ProfilePage } from '@/pages/ProfilePage'
+import { SecurityPage } from '@/pages/SecurityPage'
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore()
   if (!isAuthenticated) return <Navigate to="/login" replace />
@@ -54,6 +66,21 @@ function App() {
           <Route path="chat" element={<ChatPage />} />
           <Route path="runs" element={<RunsPage />} />
           <Route path="runs/:runId" element={<RunDetailPage />} />
+
+          {/* Administration module */}
+          <Route path="admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="company" replace />} />
+            <Route path="company" element={<CompanyProfilePage />} />
+            <Route path="branding" element={<BrandingPage />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="preferences" element={<PreferencesPage />} />
+          </Route>
+
+          {/* My Account */}
+          <Route path="account" element={<AccountLayout />}>
+            <Route index element={<ProfilePage />} />
+            <Route path="security" element={<SecurityPage />} />
+          </Route>
         </Route>
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
