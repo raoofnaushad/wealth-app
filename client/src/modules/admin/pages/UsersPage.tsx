@@ -14,10 +14,18 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { Separator } from '@/components/ui/separator'
 import { Search, UserPlus } from 'lucide-react'
 import { UserRoleBadge } from '../components/UserRoleBadge'
+import { ModuleRoleSelector } from '../components/ModuleRoleSelector'
 import { InviteUserDialog } from '../components/InviteUserDialog'
-import type { ModuleSlug, OrgUser } from '../types'
+import type { ModuleRole, ModuleSlug, ModuleRoleAssignment, OrgUser } from '../types'
 
 const MODULE_COLUMNS: { slug: ModuleSlug; label: string }[] = [
   { slug: 'deals', label: 'Deals' },
@@ -38,13 +46,31 @@ const statusVariant: Record<OrgUser['status'], 'default' | 'secondary' | 'destru
 }
 
 export function UsersPage() {
-  const { users, loadingUsers, fetchUsers } = useAdminStore()
+  const { users, loadingUsers, fetchUsers, updateUserRoles, updateUserStatus, removeUser } = useAdminStore()
   const [search, setSearch] = useState('')
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<OrgUser | null>(null)
+  const [editRoles, setEditRoles] = useState<Record<ModuleSlug, ModuleRole | 'none'>>({
+    admin: 'none', deals: 'none', engage: 'none', plan: 'none', insights: 'none', tools: 'none',
+  })
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
+
+  // Sync editRoles when selectedUser changes
+  useEffect(() => {
+    if (selectedUser) {
+      const roles: Record<ModuleSlug, ModuleRole | 'none'> = {
+        admin: 'none', deals: 'none', engage: 'none', plan: 'none', insights: 'none', tools: 'none',
+      }
+      for (const r of selectedUser.moduleRoles) {
+        roles[r.moduleSlug] = r.role
+      }
+      setEditRoles(roles)
+    }
+  }, [selectedUser])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return users
@@ -56,6 +82,30 @@ export function UsersPage() {
         u.email.toLowerCase().includes(q),
     )
   }, [users, search])
+
+  async function handleSaveRoles() {
+    if (!selectedUser) return
+    setSaving(true)
+    const moduleRoles: ModuleRoleAssignment[] = Object.entries(editRoles)
+      .filter(([, role]) => role !== 'none')
+      .map(([slug, role]) => ({ moduleSlug: slug as ModuleSlug, role: role as ModuleRole }))
+    await updateUserRoles(selectedUser.id, moduleRoles)
+    setSaving(false)
+    setSelectedUser(null)
+  }
+
+  async function handleSuspendUser() {
+    if (!selectedUser) return
+    const newStatus = selectedUser.status === 'suspended' ? 'active' : 'suspended'
+    await updateUserStatus(selectedUser.id, newStatus)
+    setSelectedUser(null)
+  }
+
+  async function handleRemoveUser() {
+    if (!selectedUser) return
+    await removeUser(selectedUser.id)
+    setSelectedUser(null)
+  }
 
   if (loadingUsers) {
     return (
@@ -105,11 +155,15 @@ export function UsersPage() {
                   (r) => r.moduleSlug === 'admin',
                 )
                 return (
-                  <TableRow key={user.id}>
+                  <TableRow
+                    key={user.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setSelectedUser(user)}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar size="sm">
-                          <AvatarFallback>{getInitials(user)}</AvatarFallback>
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="text-xs">{getInitials(user)}</AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="flex items-center gap-2">
@@ -166,6 +220,82 @@ export function UsersPage() {
       </Card>
 
       <InviteUserDialog open={inviteOpen} onClose={() => setInviteOpen(false)} />
+
+      {/* User Detail Sheet */}
+      <Sheet open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
+        <SheetContent className="w-[400px] sm:w-[450px]">
+          {selectedUser && (
+            <>
+              <SheetHeader>
+                <SheetTitle>Edit User</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6 space-y-6">
+                {/* User info */}
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-12 w-12">
+                    <AvatarFallback>{getInitials(selectedUser)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold">{selectedUser.firstName} {selectedUser.lastName}</p>
+                    <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Status</span>
+                  <Badge variant={statusVariant[selectedUser.status]}>
+                    {selectedUser.status.charAt(0).toUpperCase() + selectedUser.status.slice(1)}
+                  </Badge>
+                </div>
+
+                <Separator />
+
+                {/* Module Roles */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3">Module Roles</h3>
+                  <div className="space-y-1">
+                    {MODULE_COLUMNS.map((m) => (
+                      <ModuleRoleSelector
+                        key={m.slug}
+                        moduleSlug={m.slug}
+                        moduleLabel={m.label}
+                        value={editRoles[m.slug]}
+                        onChange={(role) => setEditRoles({ ...editRoles, [m.slug]: role })}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={handleSaveRoles} disabled={saving} className="flex-1">
+                    {saving ? 'Saving...' : 'Save Roles'}
+                  </Button>
+                </div>
+
+                <Separator />
+
+                {/* Actions */}
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleSuspendUser}
+                  >
+                    {selectedUser.status === 'suspended' ? 'Reactivate User' : 'Suspend User'}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={handleRemoveUser}
+                  >
+                    Remove from Organization
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

@@ -121,16 +121,25 @@ export function BrandingPage() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-3">
-            <div
-              className="h-8 w-8 rounded border"
-              style={{ backgroundColor: brandColor }}
-            />
+            <label className="relative h-10 w-10 cursor-pointer">
+              <div
+                className="h-10 w-10 rounded-lg border-2 border-border"
+                style={{ backgroundColor: brandColor }}
+              />
+              <input
+                type="color"
+                value={brandColor}
+                onChange={(e) => setBrandColor(e.target.value)}
+                disabled={!editing}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              />
+            </label>
             <Input
               value={brandColor}
               onChange={(e) => setBrandColor(e.target.value)}
               disabled={!editing}
-              className="w-32"
-              placeholder="#000000"
+              className="w-32 font-mono text-sm"
+              placeholder="#1E3A5F"
             />
           </div>
         </CardContent>

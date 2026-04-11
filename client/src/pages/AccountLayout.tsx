@@ -2,8 +2,8 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
-  { to: '/account/profile', label: 'Profile' },
-  { to: '/account/security', label: 'Security' },
+  { to: '/home/account', label: 'Profile', end: true },
+  { to: '/home/account/security', label: 'Security', end: false },
 ]
 
 export function AccountLayout() {
@@ -14,6 +14,7 @@ export function AccountLayout() {
           <NavLink
             key={item.to}
             to={item.to}
+            end={item.end}
             className={({ isActive }) =>
               cn(
                 'block rounded-md px-3 py-2 text-sm font-medium transition-colors',
