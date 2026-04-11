@@ -33,7 +33,7 @@ const MODULES = [
   { name: 'Invictus Tools &\nCommunication', icon: 'Flag', active: false, path: null },
   { name: 'Invictus Deals', icon: 'TrendingUp', active: false, path: null },
   { name: 'Invictus AI', icon: 'Lightbulb', active: true, path: '/home/dashboard' },
-  { name: 'Invictus\nAdministration', icon: 'Users', active: false, path: null },
+  { name: 'Invictus\nAdministration', icon: 'Users', active: false, path: '/home/admin' },
 ]
 
 interface ModuleSwitcherProps {
