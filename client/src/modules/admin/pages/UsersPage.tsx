@@ -14,13 +14,14 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { Search, UserPlus } from 'lucide-react'
 import { UserRoleBadge } from '../components/UserRoleBadge'
 import { ModuleRoleSelector } from '../components/ModuleRoleSelector'
@@ -59,7 +60,6 @@ export function UsersPage() {
     fetchUsers()
   }, [fetchUsers])
 
-  // Sync editRoles when selectedUser changes
   useEffect(() => {
     if (selectedUser) {
       const roles: Record<ModuleSlug, ModuleRole | 'none'> = {
@@ -221,15 +221,16 @@ export function UsersPage() {
 
       <InviteUserDialog open={inviteOpen} onClose={() => setInviteOpen(false)} />
 
-      {/* User Detail Sheet */}
-      <Sheet open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
-        <SheetContent className="w-[400px] sm:w-[450px]">
+      {/* User Edit Modal */}
+      <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
+        <DialogContent className="sm:max-w-md">
           {selectedUser && (
             <>
-              <SheetHeader>
-                <SheetTitle>Edit User</SheetTitle>
-              </SheetHeader>
-              <div className="mt-6 space-y-6">
+              <DialogHeader>
+                <DialogTitle>Edit User</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-5 py-2">
                 {/* User info */}
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12">
@@ -266,36 +267,41 @@ export function UsersPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-2">
-                  <Button onClick={handleSaveRoles} disabled={saving} className="flex-1">
-                    {saving ? 'Saving...' : 'Save Roles'}
-                  </Button>
-                </div>
-
                 <Separator />
 
-                {/* Actions */}
-                <div className="space-y-2">
+                {/* Danger zone */}
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
-                    className="w-full"
+                    size="sm"
+                    className="flex-1"
                     onClick={handleSuspendUser}
                   >
-                    {selectedUser.status === 'suspended' ? 'Reactivate User' : 'Suspend User'}
+                    {selectedUser.status === 'suspended' ? 'Reactivate' : 'Suspend'}
                   </Button>
                   <Button
                     variant="destructive"
-                    className="w-full"
+                    size="sm"
+                    className="flex-1"
                     onClick={handleRemoveUser}
                   >
-                    Remove from Organization
+                    Remove
                   </Button>
                 </div>
               </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSelectedUser(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveRoles} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </DialogFooter>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
