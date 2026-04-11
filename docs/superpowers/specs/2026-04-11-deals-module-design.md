@@ -12,6 +12,8 @@ This spec defines the complete Deals module — pages, data model, APIs, fronten
 - **Google Drive API** — OAuth integration for bulk document import
 - **Vector database** — for storing vectorized source documents (email attachments, uploads)
 - **External AI service** — LLM extraction, document generation, news generation, mandate matching
+- **Backend infrastructure** — FastAPI + PostgreSQL + Redis + Celery as defined in the backend infrastructure spec
+- **Administration module** — auth system (JWT access + httpOnly refresh cookie), RBAC (`require_role` dependency), tenant context middleware, audit logging via Celery task
 
 ---
 
@@ -776,7 +778,132 @@ All tenant-scoped tables have RLS enabled with policies enforcing `tenant_id = c
 
 ---
 
-## 12. API Endpoints
+## 12. Backend Architecture
+
+### Directory Structure
+
+Follows the same layered pattern as the Administration module:
+
+```
+server/app/modules/deals/
++-- __init__.py
++-- router.py              # FastAPI APIRouter — all deals endpoints
++-- service.py             # Business logic (orchestration, authorization)
++-- repository.py          # Database queries (SQLAlchemy async)
++-- models.py              # SQLAlchemy ORM models (all deals.* tables)
++-- schemas.py             # Pydantic request/response schemas
++-- events.py              # Domain event definitions (for future cross-module use)
+```
+
+### RBAC Pattern
+
+Uses the same `require_role` FastAPI dependency from `app.shared.dependencies`:
+
+```python
+from app.shared.dependencies import get_current_user, require_role, get_db
+
+@router.get("/deals/opportunities")
+async def list_opportunities(
+    user=Depends(require_role(module="deals", roles=["owner", "manager", "analyst"])),
+    db=Depends(get_db),
+):
+    ...
+
+@router.put("/deals/settings/investment-types/{type_id}")
+async def update_investment_type(
+    user=Depends(require_role(module="deals", roles=["owner"])),
+    db=Depends(get_db),
+):
+    ...
+
+@router.put("/deals/reviews/{review_id}")
+async def update_review(
+    user=Depends(require_role(module="deals", roles=["owner", "manager"])),
+    db=Depends(get_db),
+):
+    ...
+```
+
+**Permission rules:**
+- All `/api/v1/deals/*` — requires any role in `deals` module
+- Settings (investment types, templates) — requires `deals: owner`
+- Document reviews (approve/request changes) — requires `deals: owner` or `deals: manager`
+- Create/edit own opportunities, mandates, documents — `deals: analyst` and above
+- View everything — any deals role
+
+### Celery Background Tasks
+
+New tasks added to `server/app/tasks/`:
+
+```
+server/app/tasks/
++-- deals_processing.py     # process_opportunity, extract_snapshot, vectorize_files
++-- deals_email_sync.py     # sync_gmail_account, import_email_as_opportunity
++-- deals_gdrive.py         # import_google_drive_folder (long-running job)
++-- deals_news.py           # generate_news, generate_daily_report
++-- deals_documents.py      # generate_document (AI document generation)
+```
+
+| Task | Queue | Trigger | Retry |
+|------|-------|---------|-------|
+| `process_opportunity` | `deals` | On opportunity creation (email/upload/gdrive) | 3 attempts, exponential backoff |
+| `extract_snapshot` | `deals` | Called by process_opportunity after vectorization | 3 attempts |
+| `vectorize_files` | `deals` | On new source files added | 3 attempts |
+| `sync_gmail_account` | `email` | Periodic (configurable) + manual trigger | 3 attempts |
+| `import_email_as_opportunity` | `deals` | User clicks "Add as Opportunity" | 3 attempts |
+| `import_google_drive_folder` | `deals` | User triggers bulk import | No retry (tracks progress in DB) |
+| `generate_document` | `deals` | User creates a new document in workspace | 3 attempts |
+| `generate_news` | `deals` | Periodic + manual trigger | 3 attempts |
+| `generate_daily_report` | `deals` | User clicks "Generate Daily Report" | 3 attempts |
+
+### Audit Logging
+
+All significant deals actions emit audit logs via the existing `tasks.audit.write_audit_log` Celery task:
+
+- Opportunity CRUD and status changes
+- Mandate CRUD
+- Document creation and status changes
+- Review requests and approvals (with rationale)
+- Asset manager changes
+- Email imports
+- Google Drive imports
+- Settings changes (investment types, templates)
+
+### Seed Data
+
+The seed script (`server/scripts/seed.py`) is extended with deals mock data:
+
+- 2 active mandates (Growth Equity, Real Assets)
+- 4 investment types pre-configured (Fund, Direct, Co-Investment, Other) with default snapshot fields
+- 5 document templates per investment type (Investment Memo, Pre-Screening, DDQ, Market Analysis, News)
+- 4 sample asset managers
+- 8 sample opportunities (mix of statuses and investment types)
+- Sample documents in workspaces
+- Sample news items
+
+### Router Registration
+
+```python
+# server/app/main.py
+from app.modules.deals.router import router as deals_router
+
+app.include_router(deals_router, prefix="/api/v1")
+```
+
+---
+
+## 13. API Endpoints
+
+All responses use the standard envelope:
+```json
+{
+  "success": true,
+  "data": { ... },
+  "meta": { "request_id": "uuid" }
+}
+```
+
+Paginated lists include a `pagination` field. Error responses use `{ success: false, error: { code, message, details } }`.
 
 ### Mandates
 
@@ -904,7 +1031,7 @@ GET    /api/v1/deals/dashboard/pipeline-funnel             -- Funnel chart data
 
 ---
 
-## 13. Frontend Architecture
+## 14. Frontend Architecture
 
 ### File Structure
 
@@ -1061,13 +1188,13 @@ interface DealsState {
 
 ---
 
-## 14. Cross-Module Integration
+## 15. Cross-Module Integration
 
 **Deferred.** The Deals module is designed as a standalone product for v1. Cross-module integrations with Engage, Plan, Tools, and Insights will be layered on in a future phase following the 3-tier integration pattern (Navigation Links, Shared Events, Shared Data Contracts) defined in the architecture docs.
 
 ---
 
-## 15. Key Decisions
+## 16. Key Decisions
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
@@ -1084,7 +1211,7 @@ interface DealsState {
 
 ---
 
-## 16. Deferred Items (v2+)
+## 17. Deferred Items (v2+)
 
 - Cross-module integrations (Engage, Plan, Tools, Insights)
 - Outlook/Microsoft 365 email integration
