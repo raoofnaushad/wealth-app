@@ -18,6 +18,8 @@ import { AdminLayout } from '@/modules/admin/pages/AdminLayout'
 // Deals module
 import { DealsLayout } from '@/modules/deals/pages/DealsLayout'
 import { DealsDashboardPage } from '@/modules/deals/pages/DashboardPage'
+import { OpportunityListPage } from '@/modules/deals/pages/OpportunityListPage'
+import { SettingsPage as DealsSettingsPage } from '@/modules/deals/pages/SettingsPage'
 import { CompanyProfilePage } from '@/modules/admin/pages/CompanyProfilePage'
 import { BrandingPage } from '@/modules/admin/pages/BrandingPage'
 import { UsersPage } from '@/modules/admin/pages/UsersPage'
@@ -83,6 +85,8 @@ function App() {
           {/* Deals module */}
           <Route path="deals" element={<DealsLayout />}>
             <Route index element={<DealsDashboardPage />} />
+            <Route path="opportunities" element={<OpportunityListPage />} />
+            <Route path="settings" element={<DealsSettingsPage />} />
           </Route>
 
           {/* My Account */}
