@@ -19,6 +19,13 @@ from app.modules.admin.models import (  # noqa: F401
     User,
     UserModuleRole,
 )
+from app.modules.deals.models import (  # noqa: F401
+    AssetManager,
+    DocumentTemplate,
+    InvestmentType,
+    Mandate,
+    Opportunity,
+)
 
 config = context.config
 if config.config_file_name is not None:
@@ -34,13 +41,20 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_schemas=True,
+        version_table_schema="public",
     )
     with context.begin_transaction():
         context.run_migrations()
 
 
 def do_run_migrations(connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_schemas=True,
+        version_table_schema="public",
+    )
     with context.begin_transaction():
         context.run_migrations()
 
@@ -50,6 +64,7 @@ async def run_async_migrations() -> None:
     async with connectable.connect() as connection:
         await connection.execute(text("CREATE SCHEMA IF NOT EXISTS admin"))
         await connection.execute(text("CREATE SCHEMA IF NOT EXISTS platform"))
+        await connection.execute(text("CREATE SCHEMA IF NOT EXISTS deals"))
         await connection.commit()
         await connection.run_sync(do_run_migrations)
     await connectable.dispose()

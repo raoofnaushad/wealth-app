@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.shared.exceptions import AppException, app_exception_handler
+
+import app.modules.deals.models  # noqa: F401
 from app.shared.middleware import RateLimitMiddleware, RequestLoggingMiddleware, TenantContextMiddleware
 
 structlog.configure(
