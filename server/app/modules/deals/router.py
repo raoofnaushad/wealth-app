@@ -24,7 +24,6 @@ router = APIRouter(prefix="/api/v1/deals", tags=["Deals"])
 
 # Dependency shortcuts
 DealsRead = Depends(require_role("deals", ["owner", "manager", "analyst"]))
-DealsWrite = Depends(require_role("deals", ["owner", "manager"]))
 DealsOwner = Depends(require_role("deals", ["owner"]))
 
 
@@ -34,7 +33,7 @@ DealsOwner = Depends(require_role("deals", ["owner"]))
     response_model=SuccessResponse[list[InvestmentTypeResponse]],
 )
 async def list_investment_types(
-    user: CurrentUser = DealsOwner,
+    user: CurrentUser = DealsRead,
     db: AsyncSession = Depends(get_db_with_tenant),
 ):
     data = await service.list_investment_types(db, user.tenant_id)
@@ -61,7 +60,7 @@ async def create_investment_type(
 )
 async def get_investment_type(
     type_id: uuid.UUID,
-    user: CurrentUser = DealsOwner,
+    user: CurrentUser = DealsRead,
     db: AsyncSession = Depends(get_db_with_tenant),
 ):
     data = await service.get_investment_type(db, user.tenant_id, type_id)
@@ -99,7 +98,7 @@ async def delete_investment_type(
 )
 async def list_templates(
     investment_type_id: uuid.UUID | None = Query(None, alias="investmentTypeId"),
-    user: CurrentUser = DealsOwner,
+    user: CurrentUser = DealsRead,
     db: AsyncSession = Depends(get_db_with_tenant),
 ):
     data = await service.list_templates(db, user.tenant_id, investment_type_id)
@@ -112,7 +111,7 @@ async def list_templates(
 )
 async def get_template(
     template_id: uuid.UUID,
-    user: CurrentUser = DealsOwner,
+    user: CurrentUser = DealsRead,
     db: AsyncSession = Depends(get_db_with_tenant),
 ):
     data = await service.get_template(db, user.tenant_id, template_id)
@@ -151,7 +150,7 @@ async def list_mandates(
 )
 async def create_mandate(
     body: MandateCreate,
-    user: CurrentUser = DealsWrite,
+    user: CurrentUser = DealsRead,
     db: AsyncSession = Depends(get_db_with_tenant),
 ):
     data = await service.create_mandate(db, user.tenant_id, user.id, body)
@@ -172,7 +171,7 @@ async def get_mandate(
 async def update_mandate(
     mandate_id: uuid.UUID,
     body: MandateUpdate,
-    user: CurrentUser = DealsWrite,
+    user: CurrentUser = DealsRead,
     db: AsyncSession = Depends(get_db_with_tenant),
 ):
     data = await service.update_mandate(db, user.tenant_id, mandate_id, body)
@@ -208,7 +207,7 @@ async def list_opportunities(
 )
 async def create_opportunity(
     body: OpportunityCreate,
-    user: CurrentUser = DealsWrite,
+    user: CurrentUser = DealsRead,
     db: AsyncSession = Depends(get_db_with_tenant),
 ):
     data = await service.create_opportunity(db, user.tenant_id, user.id, body)
@@ -235,7 +234,7 @@ async def get_opportunity(
 async def update_opportunity(
     opp_id: uuid.UUID,
     body: OpportunityUpdate,
-    user: CurrentUser = DealsWrite,
+    user: CurrentUser = DealsRead,
     db: AsyncSession = Depends(get_db_with_tenant),
 ):
     data = await service.update_opportunity(db, user.tenant_id, opp_id, body)
