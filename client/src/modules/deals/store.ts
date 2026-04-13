@@ -16,6 +16,8 @@ import type {
   EmailAccount,
   SyncedEmail,
   GoogleDriveAccount,
+  ApprovalRequest,
+  ApprovalStage,
 } from './types'
 
 interface DealsState {
@@ -67,6 +69,7 @@ interface DealsState {
   activeOpportunity: Opportunity | null
   workspaceDocuments: Document[]
   workspaceSourceFiles: SourceFile[]
+  workspaceApprovals: ApprovalRequest[]
   workspaceTabs: WorkspaceTab[]
   activeTabId: string | null
   sidebarCollapsed: boolean
@@ -78,6 +81,7 @@ interface DealsState {
   openTab: (tab: WorkspaceTab) => void
   closeTab: (tabId: string) => void
   toggleSidebar: () => void
+  advanceApprovalStage: (newStage: ApprovalStage) => void
 }
 
 export const useDealsStore = create<DealsState>((set, get) => ({
@@ -212,6 +216,7 @@ export const useDealsStore = create<DealsState>((set, get) => ({
   activeOpportunity: null,
   workspaceDocuments: [],
   workspaceSourceFiles: [],
+  workspaceApprovals: [],
   workspaceTabs: [],
   activeTabId: null,
   sidebarCollapsed: false,
@@ -220,10 +225,11 @@ export const useDealsStore = create<DealsState>((set, get) => ({
   fetchWorkspace: async (opportunityId: string) => {
     set({ loadingWorkspace: true })
     try {
-      const [opportunity, documents, sourceFiles] = await Promise.all([
+      const [opportunity, documents, sourceFiles, approvals] = await Promise.all([
         dealsApi.getOpportunity(opportunityId),
         dealsApi.listDocuments(opportunityId),
         dealsApi.listSourceFiles(opportunityId),
+        dealsApi.listApprovals(opportunityId),
       ])
       const tabs: WorkspaceTab[] = [
         { id: 'snapshot', type: 'snapshot' as const, label: 'Snapshot' },
@@ -239,6 +245,7 @@ export const useDealsStore = create<DealsState>((set, get) => ({
         activeOpportunity: opportunity,
         workspaceDocuments: documents,
         workspaceSourceFiles: sourceFiles,
+        workspaceApprovals: approvals,
         workspaceTabs: tabs,
         activeTabId: 'snapshot',
       })
@@ -293,5 +300,12 @@ export const useDealsStore = create<DealsState>((set, get) => ({
 
   toggleSidebar: () => {
     set({ sidebarCollapsed: !get().sidebarCollapsed })
+  },
+
+  advanceApprovalStage: (newStage: ApprovalStage) => {
+    const opp = get().activeOpportunity
+    if (opp) {
+      set({ activeOpportunity: { ...opp, approvalStage: newStage } })
+    }
   },
 }))
