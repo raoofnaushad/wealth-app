@@ -235,7 +235,7 @@ export const useDealsStore = create<DealsState>((set, get) => ({
         { id: 'snapshot', type: 'snapshot' as const, label: 'Snapshot' },
         ...documents.map((d: Document) => ({
           id: d.id,
-          type: 'document' as const,
+          type: (d.documentType === 'note' ? 'note' : 'document') as 'note' | 'document',
           label: d.name,
           documentId: d.id,
           closeable: true,
@@ -256,7 +256,8 @@ export const useDealsStore = create<DealsState>((set, get) => ({
 
   addWorkspaceDocument: (doc: Document) => {
     const state = get()
-    const newTab: WorkspaceTab = { id: doc.id, type: 'document', label: doc.name, documentId: doc.id, closeable: true }
+    const tabType = doc.documentType === 'note' ? 'note' as const : 'document' as const
+    const newTab: WorkspaceTab = { id: doc.id, type: tabType, label: doc.name, documentId: doc.id, closeable: true }
     set({
       workspaceDocuments: [...state.workspaceDocuments, doc],
       workspaceTabs: [...state.workspaceTabs, newTab],
