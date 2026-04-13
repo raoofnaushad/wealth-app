@@ -10,6 +10,7 @@ import type {
   SyncedEmail,
   GoogleDriveAccount,
   DriveFolder,
+  SourceFile,
 } from '@/modules/deals/types'
 
 // ── Investment Types ──────────────────────────────────────────────────
@@ -348,6 +349,8 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
     mandateFits: [
       { mandateId: 'mandate-growth-2026', fitScore: 'strong', reasoning: 'Life sciences VC aligns with healthcare sector focus. Top-quartile track record meets criteria.' },
     ],
+    strategyFit: 'strong',
+    recommendation: 'approve',
     createdBy: 'user-usman',
     createdAt: '2026-02-10T10:00:00Z',
     updatedAt: '2026-04-01T14:00:00Z',
@@ -376,6 +379,8 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
     mandateFits: [
       { mandateId: 'mandate-real-assets-ii', fitScore: 'strong', reasoning: 'Top-tier real estate sponsor. Logistics fits infrastructure/real estate allocation. Strong co-invest terms.' },
     ],
+    strategyFit: 'strong',
+    recommendation: 'approve',
     createdBy: 'user-raoof',
     createdAt: '2026-03-01T09:00:00Z',
     updatedAt: '2026-04-05T16:00:00Z',
@@ -400,6 +405,8 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
     mandateFits: [
       { mandateId: 'mandate-growth-2026', fitScore: 'strong', reasoning: 'Premier growth equity manager with legendary track record. Perfect alignment with technology focus.' },
     ],
+    strategyFit: 'moderate',
+    recommendation: 'watch',
     createdBy: 'system',
     createdAt: '2026-04-08T08:00:00Z',
     updatedAt: '2026-04-08T08:00:00Z',
@@ -426,6 +433,8 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
     mandateFits: [
       { mandateId: 'mandate-real-assets-ii', fitScore: 'moderate', reasoning: 'Large infrastructure fund fits real assets mandate. Size may exceed concentration limits.' },
     ],
+    strategyFit: 'moderate',
+    recommendation: 'watch',
     createdBy: 'system',
     createdAt: '2026-04-09T12:00:00Z',
     updatedAt: '2026-04-09T12:00:00Z',
@@ -453,6 +462,8 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
     mandateFits: [
       { mandateId: 'mandate-growth-2026', fitScore: 'weak', reasoning: 'Pre-profitability biotech. Does not meet $10M+ ARR criteria. Negative EBITDA is a concern.' },
     ],
+    strategyFit: 'limited',
+    recommendation: 'pass',
     createdBy: 'user-pine',
     createdAt: '2026-01-15T10:00:00Z',
     updatedAt: '2026-03-20T11:00:00Z',
@@ -477,6 +488,8 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
     mandateFits: [
       { mandateId: 'mandate-real-assets-ii', fitScore: 'weak', reasoning: 'Energy transition theme is relevant but fund size below $500M threshold after GP restructuring.' },
     ],
+    strategyFit: 'limited',
+    recommendation: 'pass',
     createdBy: 'system',
     createdAt: '2025-12-01T10:00:00Z',
     updatedAt: '2026-02-10T09:00:00Z',
@@ -581,6 +594,7 @@ export interface WorkspaceDocument {
   templateName: string
   title: string
   content: string
+  documentType?: string
   status: 'draft' | 'in_review' | 'approved' | 'changes_requested'
   createdBy: string
   createdAt: string
@@ -623,6 +637,32 @@ export const MOCK_DOCUMENTS: WorkspaceDocument[] = [
     createdBy: 'user-pine',
     createdAt: '2026-03-10T10:00:00Z',
     updatedAt: '2026-03-25T16:00:00Z',
+  },
+  {
+    id: 'doc-note-1',
+    opportunityId: 'opp-abingworth-viii',
+    templateId: '',
+    templateName: '',
+    title: 'MLP Brainstorm',
+    content: '# MLP Brainstorm\n\nKey considerations for the Abingworth VIII allocation:\n\n- Portfolio construction impact: adds life sciences diversification\n- GP relationship: long-standing, strong communication\n- Co-invest potential: historically offered 2-3 co-invests per fund cycle\n- Risk factors: concentration in early-stage biotech, regulatory timelines\n\n## Action Items\n- Schedule follow-up call with IR team\n- Request updated portfolio construction model\n- Compare terms with ABV VII side letter',
+    documentType: 'note',
+    status: 'draft',
+    createdBy: 'user-raoof',
+    createdAt: '2026-04-05T11:00:00Z',
+    updatedAt: '2026-04-05T11:30:00Z',
+  },
+  {
+    id: 'doc-note-2',
+    opportunityId: 'opp-abingworth-viii',
+    templateId: '',
+    templateName: '',
+    title: 'Notes Meeting UAF',
+    content: '# Notes from UAF Meeting — April 8, 2026\n\n**Attendees:** Raoof, Usman, Pine\n\n## Discussion Summary\n- UAF committee reviewed Abingworth Bioventures VIII allocation proposal\n- Consensus on strong GP quality and strategy alignment\n- Concern raised about total healthcare exposure across portfolio\n- Requested sensitivity analysis on downside scenario\n\n## Decisions\n- Proceed with allocation at $15M (reduced from initial $20M proposal)\n- Request updated MOIC waterfall from GP\n- Final approval contingent on completion of reference checks',
+    documentType: 'note',
+    status: 'draft',
+    createdBy: 'user-usman',
+    createdAt: '2026-04-08T15:00:00Z',
+    updatedAt: '2026-04-08T16:00:00Z',
   },
 ]
 
@@ -849,4 +889,59 @@ export const MOCK_DRIVE_FOLDERS: DriveFolder[] = [
   { id: 'folder-3', name: 'Direct Investments', path: '/Direct Investments', hasChildren: false },
   { id: 'folder-4', name: 'Co-Investment Pipeline', path: '/Co-Investment Pipeline', hasChildren: true },
   { id: 'folder-5', name: 'Archive 2025', path: '/Archive 2025', hasChildren: false },
+]
+
+// ── Source Files ─────────────────────────────────────────────────────
+
+export const MOCK_SOURCE_FILES: SourceFile[] = [
+  {
+    id: 'sf-1',
+    opportunityId: 'opp-abingworth-viii',
+    fileName: 'Varo Bank — Series G Draft IC Memo.pdf',
+    fileUrl: '/files/mock/varo-bank-series-g-draft-ic-memo.pdf',
+    fileType: 'application/pdf',
+    fileSize: 3_400_000,
+    processed: true,
+    sourceOrigin: 'email',
+    createdAt: '2026-03-01T10:00:00Z',
+  },
+  {
+    id: 'sf-2',
+    opportunityId: 'opp-abingworth-viii',
+    fileName: 'Abingworth Investment Recommendations.pdf',
+    fileUrl: '/files/mock/abingworth-investment-recommendations.pdf',
+    fileType: 'application/pdf',
+    fileSize: 2_100_000,
+    processed: true,
+    sourceOrigin: 'google-drive',
+    createdAt: '2026-03-05T14:00:00Z',
+  },
+  {
+    id: 'sf-3',
+    opportunityId: 'opp-abingworth-viii',
+    fileName: 'ABV VIII — LP Term Sheet (Final).docx',
+    fileUrl: '/files/mock/abv-viii-lp-term-sheet-final.docx',
+    fileType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    fileSize: 890_000,
+    processed: true,
+    sourceOrigin: 'email',
+    createdAt: '2026-03-10T09:00:00Z',
+  },
+]
+
+// ── Team Members ─────────────────────────────────────────────────────
+
+export interface TeamMember {
+  id: string
+  name: string
+  role: string
+  email: string
+}
+
+export const MOCK_TEAM_MEMBERS: TeamMember[] = [
+  { id: 'user-raoof', name: 'Raoof Naushad', role: 'Senior Analyst', email: 'raoof@invictus.ai' },
+  { id: 'user-usman', name: 'Usman Khan', role: 'Investment Director', email: 'usman@invictus.ai' },
+  { id: 'user-pine', name: 'Pine Anderson', role: 'Portfolio Manager', email: 'pine@invictus.ai' },
+  { id: 'user-john', name: 'John Smith', role: 'Junior Analyst', email: 'john@invictus.ai' },
+  { id: 'user-sarah', name: 'Sarah Johnson', role: 'Risk Analyst', email: 'sarah@invictus.ai' },
 ]

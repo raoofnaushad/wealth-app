@@ -26,6 +26,8 @@ import {
   MOCK_SYNCED_EMAILS,
   MOCK_GOOGLE_DRIVE_ACCOUNTS,
   MOCK_DRIVE_FOLDERS,
+  MOCK_SOURCE_FILES,
+  MOCK_TEAM_MEMBERS,
 } from './data/deals'
 import type { OrgProfile, OrgBranding, OrgPreferences, InviteUserRequest, ModuleRoleAssignment } from '@/modules/admin/types'
 import type { InvestmentType, DocumentTemplate, Mandate, Opportunity, AssetManager, EmailAccount, SyncedEmail, GoogleDriveAccount, GoogleDriveImportJob } from '@/modules/deals/types'
@@ -970,6 +972,22 @@ export const handlers = [
     if (idx === -1) return HttpResponse.json({ error: 'Email not found' }, { status: 404 })
     syncedEmails[idx] = { ...syncedEmails[idx], importStatus: 'ignored' }
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ── Deals: Source Files ─────────────────────────────────────────────
+
+  http.get('/api/deals/opportunities/:oppId/files', async ({ params }) => {
+    await delay(300)
+    const { oppId } = params as { oppId: string }
+    const result = MOCK_SOURCE_FILES.filter(f => f.opportunityId === oppId)
+    return HttpResponse.json(result)
+  }),
+
+  // ── Deals: Team Members ────────────────────────────────────────────
+
+  http.get('/api/deals/team-members', async () => {
+    await delay(300)
+    return HttpResponse.json(MOCK_TEAM_MEMBERS)
   }),
 
   // ── Deals: Google Drive ────────────────────────────────────────────
