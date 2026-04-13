@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDealsStore } from '../store'
 import { useUndoRedo } from '../components/workspace/useUndoRedo'
+import { useUIStore } from '@/store/useUIStore'
 import { WorkspaceHeader } from '../components/workspace/WorkspaceHeader'
 import { WorkspaceSidebar } from '../components/workspace/WorkspaceSidebar'
 import { WorkspaceContentTabs } from '../components/workspace/WorkspaceContentTabs'
@@ -12,9 +13,7 @@ import { CreateDocumentDialog } from '../components/workspace/CreateDocumentDial
 import { ValidationDialog } from '../components/workspace/ValidationDialog'
 import { ShareDialog } from '../components/workspace/ShareDialog'
 import { ReviewBanner } from '../components/workspace/ReviewBanner'
-import { WorkspaceActionBar } from '../components/workspace/WorkspaceActionBar'
-import { downloadAsHTML } from '../components/workspace/downloadDocument'
-import type { WorkspaceTab, Document } from '../types'
+import type { WorkspaceTab } from '../types'
 import { dealsApi } from '../api'
 
 export function OpportunityWorkspacePage() {
@@ -22,6 +21,8 @@ export function OpportunityWorkspacePage() {
   const navigate = useNavigate()
   const store = useDealsStore()
   const { canUndo, canRedo, undo, redo, clearHistory } = useUndoRedo()
+  const setGlobalSidebarCollapsed = useUIStore((s) => s.setGlobalSidebarCollapsed)
+  const prevGlobalCollapsed = useRef(useUIStore.getState().globalSidebarCollapsed)
 
   const [showCreateDoc, setShowCreateDoc] = useState(false)
   const [showValidation, setShowValidation] = useState(false)
@@ -32,8 +33,15 @@ export function OpportunityWorkspacePage() {
       store.fetchWorkspace(oppId)
       if (store.investmentTypes.length === 0) store.fetchInvestmentTypes()
     }
+
+    // Auto-collapse global left nav when workspace opens
+    prevGlobalCollapsed.current = useUIStore.getState().globalSidebarCollapsed
+    setGlobalSidebarCollapsed(true)
+
     return () => {
       clearHistory()
+      // Restore global sidebar state on leave
+      setGlobalSidebarCollapsed(prevGlobalCollapsed.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [oppId])
@@ -55,7 +63,6 @@ export function OpportunityWorkspacePage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [canUndo, canRedo])
 
-  // Undo handler — applies the previous value back to store
   const handleUndo = useCallback(() => {
     const entry = undo()
     if (!entry) return
@@ -72,7 +79,6 @@ export function OpportunityWorkspacePage() {
     }
   }, [undo, store.activeOpportunity, store.workspaceDocuments])
 
-  // Redo handler
   const handleRedo = useCallback(() => {
     const entry = redo()
     if (!entry) return
@@ -89,7 +95,6 @@ export function OpportunityWorkspacePage() {
     }
   }, [redo, store.activeOpportunity, store.workspaceDocuments])
 
-  // Create a new note directly
   async function handleCreateNote() {
     if (!oppId) return
     try {
@@ -110,26 +115,26 @@ export function OpportunityWorkspacePage() {
   const opp = store.activeOpportunity
   const activeTab = store.workspaceTabs.find((t) => t.id === store.activeTabId) ?? null
 
-  // Find the active document (for share/validation dialogs)
   const activeDocument = activeTab?.type === 'document' || activeTab?.type === 'note'
-    ? store.workspaceDocuments.find((d) => d.id === activeTab.documentId)
+    ? store.workspaceDocuments.find((d) => d.id === activeTab.documentId) ?? null
     : null
 
-  // Find the active source file
   const activeSourceFile = activeTab?.type === 'source_file'
     ? store.workspaceSourceFiles.find((sf) => sf.id === activeTab.id)
     : null
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
+      {/* Header — sticky, never scrolls */}
       <WorkspaceHeader
         opportunity={opp}
+        activeDocument={activeDocument}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onBack={() => navigate('/home/deals/opportunities')}
+        onValidate={() => setShowValidation(true)}
         onShare={() => setShowShare(true)}
       />
 
@@ -140,8 +145,9 @@ export function OpportunityWorkspacePage() {
         currentUserId="user-raoof"
       />
 
-      {/* Body: Sidebar + Main Content */}
+      {/* Body: Sidebar + Main Content — sidebar and tabs are sticky, only content scrolls */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Workspace sidebar — never scrolls (has its own internal ScrollArea) */}
         <WorkspaceSidebar
           collapsed={store.sidebarCollapsed}
           documents={store.workspaceDocuments}
@@ -154,7 +160,7 @@ export function OpportunityWorkspacePage() {
         />
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Tab Bar */}
+          {/* Tab Bar — sticky, never scrolls */}
           <WorkspaceContentTabs
             tabs={store.workspaceTabs}
             activeTabId={store.activeTabId}
@@ -162,17 +168,7 @@ export function OpportunityWorkspacePage() {
             onTabClose={(tabId: string) => store.closeTab(tabId)}
           />
 
-          {/* Context-aware action bar — above content */}
-          <WorkspaceActionBar
-            activeTab={activeTab}
-            opportunity={opp}
-            documents={store.workspaceDocuments}
-            onValidate={() => setShowValidation(true)}
-            onShare={() => setShowShare(true)}
-            onDownload={(doc: Document) => downloadAsHTML(doc, opp.name)}
-          />
-
-          {/* Active Tab Content */}
+          {/* Active Tab Content — this is the only part that scrolls */}
           <div className="flex-1 overflow-auto">
             {activeTab?.type === 'snapshot' && (
               <SnapshotPanel

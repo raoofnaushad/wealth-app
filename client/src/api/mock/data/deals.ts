@@ -954,9 +954,9 @@ export interface TeamMember {
 }
 
 export const MOCK_TEAM_MEMBERS: TeamMember[] = [
-  { id: 'user-raoof', name: 'Raoof Naushad', role: 'Senior Analyst', email: 'raoof@invictus.ai' },
-  { id: 'user-usman', name: 'Usman Khan', role: 'Investment Director', email: 'usman@invictus.ai' },
-  { id: 'user-pine', name: 'Pine Anderson', role: 'Portfolio Manager', email: 'pine@invictus.ai' },
-  { id: 'user-john', name: 'John Smith', role: 'Junior Analyst', email: 'john@invictus.ai' },
-  { id: 'user-sarah', name: 'Sarah Johnson', role: 'Risk Analyst', email: 'sarah@invictus.ai' },
+  { id: 'user-raoof', name: 'Raoof Naushad', role: 'analyst', email: 'raoof@invictus.ai' },
+  { id: 'user-usman', name: 'Usman Khan', role: 'manager', email: 'usman@invictus.ai' },
+  { id: 'user-pine', name: 'Pine Anderson', role: 'manager', email: 'pine@invictus.ai' },
+  { id: 'user-john', name: 'John Smith', role: 'analyst', email: 'john@invictus.ai' },
+  { id: 'user-sarah', name: 'Sarah Johnson', role: 'manager', email: 'sarah@invictus.ai' },
 ]

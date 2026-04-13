@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -8,8 +8,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { dealsApi } from '../../api'
+import type { TeamMember } from '../../types'
 
 interface ShareDialogProps {
   documentId: string
@@ -25,25 +26,77 @@ interface ShareDialogProps {
   onClose: () => void
 }
 
+function getInitials(name: string): string {
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
+const roleLabels: Record<string, string> = {
+  manager: 'Manager',
+  analyst: 'Analyst',
+  owner: 'Owner',
+}
+
 export function ShareDialog({ documentId, documentName, onClose }: ShareDialogProps) {
-  const [userIdsInput, setUserIdsInput] = useState('')
-  const [permission, setPermission] = useState<'comment' | 'view'>('view')
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [loadingMembers, setLoadingMembers] = useState(true)
+  const [selectedUsers, setSelectedUsers] = useState<Map<string, 'view' | 'comment' | 'edit'>>(new Map())
   const [submitting, setSubmitting] = useState(false)
 
-  async function handleSubmit() {
-    const userIds = userIdsInput
-      .split(',')
-      .map((id) => id.trim())
-      .filter(Boolean)
+  useEffect(() => {
+    let cancelled = false
+    async function fetchMembers() {
+      try {
+        const members = await dealsApi.listTeamMembers()
+        if (!cancelled) setTeamMembers(members)
+      } catch {
+        // silently handle
+      } finally {
+        if (!cancelled) setLoadingMembers(false)
+      }
+    }
+    fetchMembers()
+    return () => { cancelled = true }
+  }, [])
 
-    if (userIds.length === 0) return
+  function handleToggleUser(memberId: string) {
+    setSelectedUsers((prev) => {
+      const next = new Map(prev)
+      if (next.has(memberId)) {
+        next.delete(memberId)
+      } else {
+        next.set(memberId, 'view')
+      }
+      return next
+    })
+  }
+
+  function handlePermissionChange(memberId: string, permission: 'view' | 'comment' | 'edit') {
+    setSelectedUsers((prev) => {
+      const next = new Map(prev)
+      next.set(memberId, permission)
+      return next
+    })
+  }
+
+  async function handleSubmit() {
+    if (selectedUsers.size === 0) return
 
     setSubmitting(true)
     try {
-      await dealsApi.shareDocument(documentId, {
-        sharedWith: userIds,
-        permission,
-      })
+      // Group by permission
+      const byPermission = new Map<string, string[]>()
+      for (const [userId, perm] of selectedUsers) {
+        if (!byPermission.has(perm)) byPermission.set(perm, [])
+        byPermission.get(perm)!.push(userId)
+      }
+
+      // Create share for each permission group
+      await Promise.all(
+        Array.from(byPermission).map(([permission, userIds]) =>
+          dealsApi.shareDocument(documentId, { sharedWith: userIds, permission })
+        )
+      )
+
       onClose()
     } catch {
       // Error handling will be improved when toast notifications are added
@@ -52,47 +105,73 @@ export function ShareDialog({ documentId, documentName, onClose }: ShareDialogPr
     }
   }
 
-  const canSubmit =
-    userIdsInput.trim().length > 0 && !submitting
+  const canSubmit = selectedUsers.size > 0 && !submitting
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Share Document</DialogTitle>
           <DialogDescription>
-            Share <span className="font-medium text-foreground">{documentName}</span> with
-            team members.
+            Share <span className="font-medium text-foreground">{documentName}</span> with team members and set their permissions.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* User IDs */}
-          <div className="space-y-2">
-            <Label htmlFor="share-users">Team Members</Label>
-            <Input
-              id="share-users"
-              placeholder="Enter user IDs, separated by commas"
-              value={userIdsInput}
-              onChange={(e) => setUserIdsInput(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              A proper user picker will replace this in a future release.
-            </p>
-          </div>
+        <div className="space-y-2">
+          <Label>Select team members:</Label>
+          <div className="max-h-72 space-y-0.5 overflow-y-auto rounded-md border p-2">
+            {loadingMembers ? (
+              <p className="py-3 text-center text-xs text-muted-foreground">
+                Loading team members...
+              </p>
+            ) : teamMembers.length === 0 ? (
+              <p className="py-3 text-center text-xs text-muted-foreground">
+                No team members found.
+              </p>
+            ) : (
+              teamMembers.map((member) => {
+                const isSelected = selectedUsers.has(member.id)
+                const permission = selectedUsers.get(member.id) ?? 'view'
 
-          {/* Permission */}
-          <div className="space-y-2">
-            <Label>Permission</Label>
-            <Select value={permission} onValueChange={(val) => setPermission(val as 'comment' | 'view')}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="view">View only</SelectItem>
-                <SelectItem value="comment">Can comment</SelectItem>
-              </SelectContent>
-            </Select>
+                return (
+                  <div
+                    key={member.id}
+                    className={`flex items-center gap-3 rounded-md px-2 py-2 transition-colors ${
+                      isSelected ? 'bg-muted/40' : 'hover:bg-muted/30'
+                    }`}
+                  >
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => handleToggleUser(member.id)}
+                    />
+                    <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
+                      {getInitials(member.name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{member.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {roleLabels[member.role] ?? member.role}
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <Select
+                        value={permission}
+                        onValueChange={(val) => handlePermissionChange(member.id, val as 'view' | 'comment' | 'edit')}
+                      >
+                        <SelectTrigger className="w-28 h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="view">View only</SelectItem>
+                          <SelectItem value="comment">Can comment</SelectItem>
+                          <SelectItem value="edit">Can edit</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
 
@@ -101,7 +180,9 @@ export function ShareDialog({ documentId, documentName, onClose }: ShareDialogPr
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit}>
-            {submitting ? 'Sharing...' : 'Share'}
+            {submitting
+              ? 'Sharing...'
+              : `Share with ${selectedUsers.size} member${selectedUsers.size !== 1 ? 's' : ''}`}
           </Button>
         </DialogFooter>
       </DialogContent>

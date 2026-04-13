@@ -118,6 +118,9 @@ export function ValidationDialog({ documents, onClose }: ValidationDialogProps) 
     }
   }
 
+  // Only show managers for validation
+  const managers = teamMembers.filter((m) => m.role === 'manager')
+
   const canSubmit = selectedDocIds.size > 0 && selectedReviewerIds.size > 0 && !submitting
 
   return (
@@ -176,18 +179,18 @@ export function ValidationDialog({ documents, onClose }: ValidationDialogProps) 
 
           {/* Team member picker */}
           <div className="space-y-2">
-            <Label>Choose team members to validate this report:</Label>
+            <Label>Choose managers to validate this report:</Label>
             <div className="max-h-56 space-y-0.5 overflow-y-auto rounded-md border p-2">
               {loadingMembers ? (
                 <p className="py-3 text-center text-xs text-muted-foreground">
                   Loading team members...
                 </p>
-              ) : teamMembers.length === 0 ? (
+              ) : managers.length === 0 ? (
                 <p className="py-3 text-center text-xs text-muted-foreground">
-                  No team members found.
+                  No managers found.
                 </p>
               ) : (
-                teamMembers.map((member) => {
+                managers.map((member) => {
                   const isSelected = selectedReviewerIds.has(member.id)
 
                   return (
