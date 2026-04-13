@@ -3,6 +3,8 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import or_
+
 from app.modules.deals.models import (
     AssetManager,
     Document,
@@ -10,11 +12,16 @@ from app.modules.deals.models import (
     DocumentReviewItem,
     DocumentShare,
     DocumentTemplate,
+    EmailAccount,
+    EmailAttachment,
+    GoogleDriveAccount,
+    GoogleDriveImportJob,
     InvestmentType,
     Mandate,
     NewsItem,
     Opportunity,
     SourceFile,
+    SyncedEmail,
 )
 
 
@@ -494,3 +501,154 @@ async def list_source_files(
         .order_by(SourceFile.created_at.desc())
     )
     return list(result.scalars().all())
+
+
+# --- Email Accounts ---
+async def list_email_accounts(
+    db: AsyncSession, tenant_id: uuid.UUID
+) -> list[EmailAccount]:
+    result = await db.execute(
+        select(EmailAccount)
+        .where(EmailAccount.tenant_id == tenant_id)
+        .order_by(EmailAccount.created_at)
+    )
+    return list(result.scalars().all())
+
+
+async def get_email_account(
+    db: AsyncSession, tenant_id: uuid.UUID, account_id: uuid.UUID
+) -> EmailAccount | None:
+    result = await db.execute(
+        select(EmailAccount).where(
+            EmailAccount.tenant_id == tenant_id, EmailAccount.id == account_id
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def create_email_account(
+    db: AsyncSession, account: EmailAccount
+) -> EmailAccount:
+    db.add(account)
+    await db.flush()
+    return account
+
+
+async def delete_email_account(
+    db: AsyncSession, account: EmailAccount
+) -> EmailAccount:
+    await db.delete(account)
+    await db.flush()
+    return account
+
+
+# --- Synced Emails ---
+async def list_emails(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    account_id: uuid.UUID | None = None,
+    import_status: str | None = None,
+    has_attachments: bool | None = None,
+    search: str | None = None,
+) -> list[SyncedEmail]:
+    stmt = select(SyncedEmail).where(SyncedEmail.tenant_id == tenant_id)
+    if account_id is not None:
+        stmt = stmt.where(SyncedEmail.email_account_id == account_id)
+    if import_status is not None:
+        stmt = stmt.where(SyncedEmail.import_status == import_status)
+    if has_attachments is True:
+        stmt = stmt.where(SyncedEmail.attachment_count > 0)
+    elif has_attachments is False:
+        stmt = stmt.where(SyncedEmail.attachment_count == 0)
+    if search is not None:
+        pattern = f"%{search}%"
+        stmt = stmt.where(
+            or_(
+                SyncedEmail.subject.ilike(pattern),
+                SyncedEmail.from_name.ilike(pattern),
+                SyncedEmail.from_address.ilike(pattern),
+            )
+        )
+    stmt = stmt.order_by(SyncedEmail.received_at.desc())
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def get_email(
+    db: AsyncSession, tenant_id: uuid.UUID, email_id: uuid.UUID
+) -> SyncedEmail | None:
+    result = await db.execute(
+        select(SyncedEmail).where(
+            SyncedEmail.tenant_id == tenant_id, SyncedEmail.id == email_id
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_email(
+    db: AsyncSession, email: SyncedEmail, data: dict
+) -> SyncedEmail:
+    for key, value in data.items():
+        if value is not None:
+            setattr(email, key, value)
+    await db.flush()
+    return email
+
+
+# --- Google Drive Accounts ---
+async def list_google_drive_accounts(
+    db: AsyncSession, tenant_id: uuid.UUID
+) -> list[GoogleDriveAccount]:
+    result = await db.execute(
+        select(GoogleDriveAccount)
+        .where(GoogleDriveAccount.tenant_id == tenant_id)
+        .order_by(GoogleDriveAccount.created_at)
+    )
+    return list(result.scalars().all())
+
+
+async def get_google_drive_account(
+    db: AsyncSession, tenant_id: uuid.UUID, account_id: uuid.UUID
+) -> GoogleDriveAccount | None:
+    result = await db.execute(
+        select(GoogleDriveAccount).where(
+            GoogleDriveAccount.tenant_id == tenant_id, GoogleDriveAccount.id == account_id
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def create_google_drive_account(
+    db: AsyncSession, account: GoogleDriveAccount
+) -> GoogleDriveAccount:
+    db.add(account)
+    await db.flush()
+    return account
+
+
+async def delete_google_drive_account(
+    db: AsyncSession, account: GoogleDriveAccount
+) -> GoogleDriveAccount:
+    await db.delete(account)
+    await db.flush()
+    return account
+
+
+# --- Google Drive Import Jobs ---
+async def create_import_job(
+    db: AsyncSession, job: GoogleDriveImportJob
+) -> GoogleDriveImportJob:
+    db.add(job)
+    await db.flush()
+    return job
+
+
+async def get_import_job(
+    db: AsyncSession, tenant_id: uuid.UUID, job_id: uuid.UUID
+) -> GoogleDriveImportJob | None:
+    result = await db.execute(
+        select(GoogleDriveImportJob).where(
+            GoogleDriveImportJob.tenant_id == tenant_id, GoogleDriveImportJob.id == job_id
+        )
+    )
+    return result.scalar_one_or_none()

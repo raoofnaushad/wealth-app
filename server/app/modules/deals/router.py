@@ -19,6 +19,14 @@ from app.modules.deals.schemas import (
     DocumentTemplateResponse,
     DocumentTemplateUpdate,
     DocumentUpdate,
+    DriveBrowseResponse,
+    EmailAccountCreate,
+    EmailAccountResponse,
+    GoogleDriveAccountCreate,
+    GoogleDriveAccountResponse,
+    GoogleDriveImportJobResponse,
+    GoogleDriveImportRequest,
+    ImportEmailRequest,
     InvestmentTypeCreate,
     InvestmentTypeResponse,
     InvestmentTypeUpdate,
@@ -30,6 +38,7 @@ from app.modules.deals.schemas import (
     OpportunityResponse,
     OpportunityUpdate,
     SourceFileResponse,
+    SyncedEmailResponse,
 )
 from app.shared.dependencies import CurrentUser, get_db_with_tenant, require_role
 from app.shared.schemas import SuccessResponse
@@ -527,3 +536,183 @@ async def delete_share(
 ):
     await service.delete_share(db, user.tenant_id, share_id)
     return Response(status_code=204)
+
+
+# --- Email Accounts ---
+@router.get(
+    "/email/accounts",
+    response_model=SuccessResponse[list[EmailAccountResponse]],
+)
+async def list_email_accounts(
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    data = await service.list_email_accounts(db, user.tenant_id)
+    return SuccessResponse(data=data)
+
+
+@router.post(
+    "/email/accounts",
+    response_model=SuccessResponse[EmailAccountResponse],
+    status_code=201,
+)
+async def connect_email_account(
+    body: EmailAccountCreate,
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    data = await service.connect_email_account(db, user.tenant_id, user.id, body)
+    return SuccessResponse(data=data)
+
+
+@router.delete("/email/accounts/{account_id}", status_code=204)
+async def disconnect_email_account(
+    account_id: uuid.UUID,
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    await service.disconnect_email_account(db, user.tenant_id, account_id)
+    return Response(status_code=204)
+
+
+@router.post(
+    "/email/accounts/{account_id}/sync",
+    response_model=SuccessResponse[EmailAccountResponse],
+)
+async def trigger_email_sync(
+    account_id: uuid.UUID,
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    data = await service.trigger_email_sync(db, user.tenant_id, account_id)
+    return SuccessResponse(data=data)
+
+
+# --- Synced Emails ---
+@router.get(
+    "/emails",
+    response_model=SuccessResponse[list[SyncedEmailResponse]],
+)
+async def list_emails(
+    account_id: uuid.UUID | None = Query(None, alias="accountId"),
+    import_status: str | None = Query(None, alias="importStatus"),
+    has_attachments: bool | None = Query(None, alias="hasAttachments"),
+    search: str | None = Query(None),
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    data = await service.list_emails(
+        db, user.tenant_id, account_id, import_status, has_attachments, search
+    )
+    return SuccessResponse(data=data)
+
+
+@router.get(
+    "/emails/{email_id}",
+    response_model=SuccessResponse[SyncedEmailResponse],
+)
+async def get_email(
+    email_id: uuid.UUID,
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    data = await service.get_email(db, user.tenant_id, email_id)
+    return SuccessResponse(data=data)
+
+
+@router.post(
+    "/emails/{email_id}/import",
+    response_model=SuccessResponse[OpportunityResponse],
+    status_code=201,
+)
+async def import_email(
+    email_id: uuid.UUID,
+    body: ImportEmailRequest,
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    data = await service.import_email_as_opportunity(
+        db, user.tenant_id, user.id, email_id, body
+    )
+    return SuccessResponse(data=data)
+
+
+@router.put("/emails/{email_id}/ignore", status_code=204)
+async def ignore_email(
+    email_id: uuid.UUID,
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    await service.ignore_email(db, user.tenant_id, email_id)
+    return Response(status_code=204)
+
+
+# --- Google Drive ---
+@router.post(
+    "/integrations/google-drive",
+    response_model=SuccessResponse[GoogleDriveAccountResponse],
+    status_code=201,
+)
+async def connect_google_drive(
+    body: GoogleDriveAccountCreate,
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    data = await service.connect_google_drive(db, user.tenant_id, user.id, body)
+    return SuccessResponse(data=data)
+
+
+@router.delete("/integrations/google-drive/{account_id}", status_code=204)
+async def disconnect_google_drive(
+    account_id: uuid.UUID,
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    await service.disconnect_google_drive(db, user.tenant_id, account_id)
+    return Response(status_code=204)
+
+
+@router.get(
+    "/integrations/google-drive/browse",
+    response_model=SuccessResponse[DriveBrowseResponse],
+)
+async def browse_google_drive(
+    account_id: uuid.UUID = Query(..., alias="accountId"),
+    parent_folder_id: str | None = Query(None, alias="parentFolderId"),
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    data = await service.browse_google_drive(
+        db, user.tenant_id, account_id, parent_folder_id
+    )
+    return SuccessResponse(data=data)
+
+
+@router.post(
+    "/integrations/google-drive/import",
+    response_model=SuccessResponse[GoogleDriveImportJobResponse],
+    status_code=201,
+)
+async def start_google_drive_import(
+    body: GoogleDriveImportRequest,
+    account_id: uuid.UUID = Query(..., alias="accountId"),
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    data = await service.start_google_drive_import(
+        db, user.tenant_id, user.id, account_id, body
+    )
+    return SuccessResponse(data=data)
+
+
+@router.get(
+    "/integrations/google-drive/import/{job_id}",
+    response_model=SuccessResponse[GoogleDriveImportJobResponse],
+)
+async def get_import_job(
+    job_id: uuid.UUID,
+    user: CurrentUser = DealsRead,
+    db: AsyncSession = Depends(get_db_with_tenant),
+):
+    data = await service.get_import_job(db, user.tenant_id, job_id)
+    return SuccessResponse(data=data)

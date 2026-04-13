@@ -335,3 +335,108 @@ class SourceFileResponse(BaseModel):
     processed: bool
     sourceOrigin: str | None
     createdAt: datetime
+
+
+# --- Email Accounts ---
+class EmailAccountResponse(BaseModel):
+    id: uuid.UUID
+    userId: uuid.UUID
+    provider: str
+    emailAddress: str
+    status: str
+    lastSyncedAt: datetime | None = None
+    syncLabels: list[str] | None = None
+    createdAt: datetime
+    updatedAt: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class EmailAccountCreate(BaseModel):
+    provider: str = "gmail"
+    emailAddress: str
+    accessToken: str | None = None
+    refreshToken: str | None = None
+
+
+# --- Synced Emails ---
+class EmailAttachmentResponse(BaseModel):
+    id: uuid.UUID
+    fileName: str | None = None
+    fileType: str | None = None
+    fileSize: int | None = None
+
+
+class SyncedEmailResponse(BaseModel):
+    id: uuid.UUID
+    emailAccountId: uuid.UUID
+    fromAddress: str | None = None
+    fromName: str | None = None
+    subject: str | None = None
+    bodyText: str | None = None
+    bodyHtml: str | None = None
+    receivedAt: datetime | None = None
+    attachmentCount: int
+    importStatus: str
+    opportunityId: uuid.UUID | None = None
+    attachments: list[EmailAttachmentResponse]
+    createdAt: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ImportEmailRequest(BaseModel):
+    investmentTypeId: str
+
+
+# --- Google Drive ---
+class GoogleDriveAccountResponse(BaseModel):
+    id: uuid.UUID
+    userId: uuid.UUID
+    emailAddress: str | None = None
+    status: str
+    createdAt: datetime
+    updatedAt: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class GoogleDriveAccountCreate(BaseModel):
+    emailAddress: str | None = None
+    accessToken: str | None = None
+    refreshToken: str | None = None
+
+
+class DriveFolder(BaseModel):
+    id: str
+    name: str
+    path: str
+    hasChildren: bool
+
+
+class DriveBrowseResponse(BaseModel):
+    folders: list[DriveFolder]
+
+
+class GoogleDriveImportRequest(BaseModel):
+    folderIds: list[str]
+
+
+class GoogleDriveImportJobResponse(BaseModel):
+    id: uuid.UUID
+    accountId: uuid.UUID
+    folderPaths: list[str] | None = None
+    status: str
+    totalFiles: int
+    processedFiles: int
+    opportunitiesCreated: int
+    errorLog: dict | None = None
+    startedAt: datetime | None = None
+    completedAt: datetime | None = None
+    createdAt: datetime
+
+    class Config:
+        from_attributes = True

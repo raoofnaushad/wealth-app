@@ -5,7 +5,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timezone
 
 from app.modules.deals import repository
-from app.modules.deals.models import AssetManager, Document, DocumentReview, DocumentShare
+from app.modules.deals.models import (
+    AssetManager,
+    Document,
+    DocumentReview,
+    DocumentShare,
+    EmailAccount,
+    GoogleDriveAccount,
+    GoogleDriveImportJob,
+    Opportunity,
+)
 from app.modules.deals.schemas import (
     AssetManagerCreate,
     AssetManagerResponse,
@@ -20,6 +29,16 @@ from app.modules.deals.schemas import (
     DocumentShareResponse,
     DocumentTemplateResponse,
     DocumentUpdate,
+    DriveBrowseResponse,
+    DriveFolder,
+    EmailAccountCreate,
+    EmailAccountResponse,
+    EmailAttachmentResponse,
+    GoogleDriveAccountCreate,
+    GoogleDriveAccountResponse,
+    GoogleDriveImportJobResponse,
+    GoogleDriveImportRequest,
+    ImportEmailRequest,
     InvestmentTypeCreate,
     InvestmentTypeResponse,
     InvestmentTypeUpdate,
@@ -35,6 +54,7 @@ from app.modules.deals.schemas import (
     PipelineStatusCount,
     ReviewDocumentItem,
     SourceFileResponse,
+    SyncedEmailResponse,
 )
 from app.shared.exceptions import forbidden, not_found
 
@@ -756,3 +776,276 @@ async def list_source_files(
 ) -> list[SourceFileResponse]:
     files = await repository.list_source_files(db, tenant_id, opportunity_id)
     return [_source_file_to_response(f) for f in files]
+
+
+# --- Email helpers ---
+def _email_account_to_response(account) -> EmailAccountResponse:
+    return EmailAccountResponse(
+        id=account.id,
+        userId=account.user_id,
+        provider=account.provider,
+        emailAddress=account.email_address,
+        status=account.status,
+        lastSyncedAt=account.last_synced_at,
+        syncLabels=account.sync_labels,
+        createdAt=account.created_at,
+        updatedAt=account.updated_at,
+    )
+
+
+def _email_to_response(email) -> SyncedEmailResponse:
+    attachments = [
+        EmailAttachmentResponse(
+            id=att.id,
+            fileName=att.file_name,
+            fileType=att.file_type,
+            fileSize=att.file_size,
+        )
+        for att in email.attachments
+    ]
+    return SyncedEmailResponse(
+        id=email.id,
+        emailAccountId=email.email_account_id,
+        fromAddress=email.from_address,
+        fromName=email.from_name,
+        subject=email.subject,
+        bodyText=email.body_text,
+        bodyHtml=email.body_html,
+        receivedAt=email.received_at,
+        attachmentCount=email.attachment_count,
+        importStatus=email.import_status,
+        opportunityId=email.opportunity_id,
+        attachments=attachments,
+        createdAt=email.created_at,
+    )
+
+
+def _gdrive_account_to_response(account) -> GoogleDriveAccountResponse:
+    return GoogleDriveAccountResponse(
+        id=account.id,
+        userId=account.user_id,
+        emailAddress=account.email_address,
+        status=account.status,
+        createdAt=account.created_at,
+        updatedAt=account.updated_at,
+    )
+
+
+def _import_job_to_response(job) -> GoogleDriveImportJobResponse:
+    return GoogleDriveImportJobResponse(
+        id=job.id,
+        accountId=job.account_id,
+        folderPaths=job.folder_paths,
+        status=job.status,
+        totalFiles=job.total_files,
+        processedFiles=job.processed_files,
+        opportunitiesCreated=job.opportunities_created,
+        errorLog=job.error_log,
+        startedAt=job.started_at,
+        completedAt=job.completed_at,
+        createdAt=job.created_at,
+    )
+
+
+# --- Email Accounts ---
+async def list_email_accounts(
+    db: AsyncSession, tenant_id: uuid.UUID
+) -> list[EmailAccountResponse]:
+    accounts = await repository.list_email_accounts(db, tenant_id)
+    return [_email_account_to_response(a) for a in accounts]
+
+
+async def connect_email_account(
+    db: AsyncSession, tenant_id: uuid.UUID, user_id: uuid.UUID, data: EmailAccountCreate
+) -> EmailAccountResponse:
+    account = EmailAccount(
+        id=uuid.uuid4(),
+        tenant_id=tenant_id,
+        user_id=user_id,
+        provider=data.provider,
+        email_address=data.emailAddress,
+        access_token=data.accessToken,
+        refresh_token=data.refreshToken,
+        status="connected",
+    )
+    account = await repository.create_email_account(db, account)
+    return _email_account_to_response(account)
+
+
+async def disconnect_email_account(
+    db: AsyncSession, tenant_id: uuid.UUID, account_id: uuid.UUID
+) -> bool:
+    account = await repository.get_email_account(db, tenant_id, account_id)
+    if not account:
+        raise not_found("Email account not found")
+    await repository.delete_email_account(db, account)
+    return True
+
+
+async def trigger_email_sync(
+    db: AsyncSession, tenant_id: uuid.UUID, account_id: uuid.UUID
+) -> EmailAccountResponse:
+    account = await repository.get_email_account(db, tenant_id, account_id)
+    if not account:
+        raise not_found("Email account not found")
+    # Stub: just update last_synced_at
+    account.last_synced_at = datetime.now(timezone.utc)
+    await db.flush()
+    return _email_account_to_response(account)
+
+
+# --- Synced Emails ---
+async def list_emails(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    account_id: uuid.UUID | None = None,
+    import_status: str | None = None,
+    has_attachments: bool | None = None,
+    search: str | None = None,
+) -> list[SyncedEmailResponse]:
+    emails = await repository.list_emails(
+        db, tenant_id, account_id, import_status, has_attachments, search
+    )
+    return [_email_to_response(e) for e in emails]
+
+
+async def get_email(
+    db: AsyncSession, tenant_id: uuid.UUID, email_id: uuid.UUID
+) -> SyncedEmailResponse:
+    email = await repository.get_email(db, tenant_id, email_id)
+    if not email:
+        raise not_found("Email not found")
+    return _email_to_response(email)
+
+
+async def import_email_as_opportunity(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    user_id: uuid.UUID,
+    email_id: uuid.UUID,
+    data: ImportEmailRequest,
+) -> OpportunityResponse:
+    email = await repository.get_email(db, tenant_id, email_id)
+    if not email:
+        raise not_found("Email not found")
+
+    snapshot_data = {
+        "fromAddress": email.from_address,
+        "fromName": email.from_name,
+        "subject": email.subject,
+        "receivedAt": email.received_at.isoformat() if email.received_at else None,
+        "attachmentCount": email.attachment_count,
+    }
+
+    opp_data: dict = {
+        "name": email.subject or "Imported Email Opportunity",
+        "investment_type_id": uuid.UUID(data.investmentTypeId),
+        "source_type": "email",
+        "source_email_id": email.id,
+        "snapshot_data": snapshot_data,
+        "created_by": user_id,
+    }
+    opp = await repository.create_opportunity(db, tenant_id, opp_data)
+
+    await repository.update_email(
+        db, email, {"import_status": "imported", "opportunity_id": opp.id}
+    )
+
+    return _opportunity_to_response(opp)
+
+
+async def ignore_email(
+    db: AsyncSession, tenant_id: uuid.UUID, email_id: uuid.UUID
+) -> bool:
+    email = await repository.get_email(db, tenant_id, email_id)
+    if not email:
+        raise not_found("Email not found")
+    await repository.update_email(db, email, {"import_status": "ignored"})
+    return True
+
+
+# --- Google Drive ---
+async def list_google_drive_accounts(
+    db: AsyncSession, tenant_id: uuid.UUID
+) -> list[GoogleDriveAccountResponse]:
+    accounts = await repository.list_google_drive_accounts(db, tenant_id)
+    return [_gdrive_account_to_response(a) for a in accounts]
+
+
+async def connect_google_drive(
+    db: AsyncSession, tenant_id: uuid.UUID, user_id: uuid.UUID, data: GoogleDriveAccountCreate
+) -> GoogleDriveAccountResponse:
+    account = GoogleDriveAccount(
+        id=uuid.uuid4(),
+        tenant_id=tenant_id,
+        user_id=user_id,
+        email_address=data.emailAddress,
+        access_token=data.accessToken,
+        refresh_token=data.refreshToken,
+        status="connected",
+    )
+    account = await repository.create_google_drive_account(db, account)
+    return _gdrive_account_to_response(account)
+
+
+async def disconnect_google_drive(
+    db: AsyncSession, tenant_id: uuid.UUID, account_id: uuid.UUID
+) -> bool:
+    account = await repository.get_google_drive_account(db, tenant_id, account_id)
+    if not account:
+        raise not_found("Google Drive account not found")
+    await repository.delete_google_drive_account(db, account)
+    return True
+
+
+async def browse_google_drive(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    account_id: uuid.UUID,
+    parent_folder_id: str | None = None,
+) -> DriveBrowseResponse:
+    # Verify account exists
+    account = await repository.get_google_drive_account(db, tenant_id, account_id)
+    if not account:
+        raise not_found("Google Drive account not found")
+
+    # STUB: return mock folders
+    mock_folders = [
+        DriveFolder(id="folder-1", name="Investment Memos", path="/Investment Memos", hasChildren=True),
+        DriveFolder(id="folder-2", name="Due Diligence", path="/Due Diligence", hasChildren=True),
+        DriveFolder(id="folder-3", name="Term Sheets", path="/Term Sheets", hasChildren=False),
+    ]
+    return DriveBrowseResponse(folders=mock_folders)
+
+
+async def start_google_drive_import(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    user_id: uuid.UUID,
+    account_id: uuid.UUID,
+    data: GoogleDriveImportRequest,
+) -> GoogleDriveImportJobResponse:
+    account = await repository.get_google_drive_account(db, tenant_id, account_id)
+    if not account:
+        raise not_found("Google Drive account not found")
+
+    job = GoogleDriveImportJob(
+        id=uuid.uuid4(),
+        tenant_id=tenant_id,
+        account_id=account_id,
+        folder_paths=data.folderIds,
+        status="processing",
+        started_at=datetime.now(timezone.utc),
+        created_by=user_id,
+    )
+    job = await repository.create_import_job(db, job)
+    return _import_job_to_response(job)
+
+
+async def get_import_job(
+    db: AsyncSession, tenant_id: uuid.UUID, job_id: uuid.UUID
+) -> GoogleDriveImportJobResponse:
+    job = await repository.get_import_job(db, tenant_id, job_id)
+    if not job:
+        raise not_found("Import job not found")
+    return _import_job_to_response(job)
