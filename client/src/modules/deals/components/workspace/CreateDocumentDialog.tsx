@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -10,16 +10,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { FileText, Plus, Search } from 'lucide-react'
 import { dealsApi } from '../../api'
 import { useDealsStore } from '../../store'
-import type { DocumentType } from '../../types'
+import type { DocumentType, DocumentTemplate } from '../../types'
 
 interface CreateDocumentDialogProps {
   opportunityId: string
@@ -28,30 +23,14 @@ interface CreateDocumentDialogProps {
   onClose: () => void
 }
 
-const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
-  { value: 'investment_memo', label: 'Investment Memo' },
-  { value: 'pre_screening', label: 'Pre-Screening Report' },
-  { value: 'ddq', label: 'DDQ' },
-  { value: 'market_analysis', label: 'Market Analysis' },
-  { value: 'news', label: 'News/Insights' },
-  { value: 'custom', label: 'Custom' },
-]
-
-function getDefaultName(docType: DocumentType, opportunityName: string): string {
-  switch (docType) {
-    case 'investment_memo':
-      return `Investment Memo — ${opportunityName}`
-    case 'pre_screening':
-      return `Pre-Screening Report — ${opportunityName}`
-    case 'ddq':
-      return `DDQ — ${opportunityName}`
-    case 'market_analysis':
-      return `Market Analysis — ${opportunityName}`
-    case 'news':
-      return `News/Insights — ${opportunityName}`
-    case 'custom':
-      return ''
-  }
+function getDocTypeFromTemplate(templateName: string): DocumentType {
+  const lower = templateName.toLowerCase()
+  if (lower.includes('memo')) return 'investment_memo'
+  if (lower.includes('screening')) return 'pre_screening'
+  if (lower.includes('ddq') || lower.includes('diligence')) return 'ddq'
+  if (lower.includes('market')) return 'market_analysis'
+  if (lower.includes('news')) return 'news'
+  return 'custom'
 }
 
 export function CreateDocumentDialog({
@@ -60,12 +39,14 @@ export function CreateDocumentDialog({
   investmentTypeId,
   onClose,
 }: CreateDocumentDialogProps) {
-  const [documentType, setDocumentType] = useState<DocumentType | ''>('')
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [customMode, setCustomMode] = useState(false)
   const [name, setName] = useState('')
-  const [templateId, setTemplateId] = useState<string | ''>('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const templates = useDealsStore((s) => s.templates)
+  const investmentTypes = useDealsStore((s) => s.investmentTypes)
   const fetchTemplates = useDealsStore((s) => s.fetchTemplates)
   const addWorkspaceDocument = useDealsStore((s) => s.addWorkspaceDocument)
 
@@ -75,24 +56,50 @@ export function CreateDocumentDialog({
     }
   }, [investmentTypeId, fetchTemplates])
 
-  function handleTypeChange(value: DocumentType) {
-    setDocumentType(value)
-    setName(getDefaultName(value, opportunityName))
-    setTemplateId('')
+  const filteredTemplates = useMemo(() => {
+    const base = templates.filter(
+      (t) => !investmentTypeId || t.investmentTypeId === investmentTypeId
+    )
+    if (!searchQuery.trim()) return base
+    const q = searchQuery.toLowerCase()
+    return base.filter((t) => t.name.toLowerCase().includes(q))
+  }, [templates, investmentTypeId, searchQuery])
+
+  const investmentTypeMap = useMemo(
+    () => new Map(investmentTypes.map((t) => [t.id, t.name])),
+    [investmentTypes]
+  )
+
+  function handleTemplateSelect(template: DocumentTemplate) {
+    setSelectedTemplateId(template.id)
+    setCustomMode(false)
+    setName(`${template.name} — ${opportunityName}`)
+  }
+
+  function handleScratchSelect() {
+    setCustomMode(true)
+    setSelectedTemplateId(null)
+    setName('')
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!documentType || !name.trim()) return
+    if (!name.trim()) return
+    if (!selectedTemplateId && !customMode) return
 
     setSubmitting(true)
     try {
+      const selectedTemplate = templates.find((t) => t.id === selectedTemplateId)
+      const documentType: DocumentType = selectedTemplate
+        ? getDocTypeFromTemplate(selectedTemplate.name)
+        : 'custom'
+
       const payload: { name: string; documentType: string; templateId?: string } = {
         name: name.trim(),
         documentType,
       }
-      if (templateId) {
-        payload.templateId = templateId
+      if (selectedTemplateId) {
+        payload.templateId = selectedTemplateId
       }
       const createdDoc = await dealsApi.createDocument(opportunityId, payload)
       addWorkspaceDocument(createdDoc)
@@ -104,80 +111,103 @@ export function CreateDocumentDialog({
     }
   }
 
-  const filteredTemplates = templates.filter(
-    (t) => !investmentTypeId || t.investmentTypeId === investmentTypeId
-  )
-  const showTemplateField = documentType !== '' && documentType !== 'custom'
+  const hasSelection = selectedTemplateId !== null || customMode
+  const canSubmit = hasSelection && name.trim().length > 0
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Create Document</DialogTitle>
             <DialogDescription>
-              Create a new document for {opportunityName}. Select a type and optionally choose a template.
+              Choose a template for {opportunityName}
             </DialogDescription>
           </DialogHeader>
 
           <div className="mt-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="doc-type">Document Type</Label>
-              <Select
-                value={documentType}
-                onValueChange={(val) => handleTypeChange(val as DocumentType)}
-              >
-                <SelectTrigger className="w-full" id="doc-type">
-                  <SelectValue placeholder="Select a document type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOCUMENT_TYPE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Search input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search templates..."
+                className="pl-9"
+              />
             </div>
 
+            {/* Template cards grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[360px] overflow-y-auto">
+              {filteredTemplates.map((template) => {
+                const isSelected = selectedTemplateId === template.id
+                const typeName = investmentTypeMap.get(template.investmentTypeId) ?? 'Other'
+                const description = template.promptTemplate
+                  ? template.promptTemplate.slice(0, 60) + (template.promptTemplate.length > 60 ? '...' : '')
+                  : ''
+
+                return (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => handleTemplateSelect(template)}
+                    className={`flex flex-col items-start gap-2 rounded-lg border p-3 text-left transition-colors ${
+                      isSelected
+                        ? 'ring-2 ring-primary border-primary'
+                        : 'hover:border-foreground/20 cursor-pointer'
+                    }`}
+                  >
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">{template.name}</span>
+                    <div className="w-full border-t" />
+                    <Badge variant="outline">{typeName}</Badge>
+                    {description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {description}
+                      </p>
+                    )}
+                  </button>
+                )
+              })}
+
+              {/* Start from scratch card */}
+              <button
+                type="button"
+                onClick={handleScratchSelect}
+                className={`flex flex-col items-start gap-2 rounded-lg border p-3 text-left transition-colors ${
+                  customMode
+                    ? 'ring-2 ring-primary border-primary'
+                    : 'hover:border-foreground/20 cursor-pointer'
+                }`}
+              >
+                <Plus className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Start from scratch</span>
+                <div className="w-full border-t" />
+                <Badge variant="outline">Custom</Badge>
+                <p className="text-xs text-muted-foreground line-clamp-2">
+                  Create a blank document from scratch.
+                </p>
+              </button>
+            </div>
+
+            {/* Document name */}
             <div className="space-y-2">
-              <Label htmlFor="doc-name">Name</Label>
+              <Label htmlFor="doc-name">Document Name</Label>
               <Input
                 id="doc-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Document name"
+                placeholder="Auto-generated or custom name"
                 required
               />
             </div>
-
-            {showTemplateField && filteredTemplates.length > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="doc-template">Template (optional)</Label>
-                <Select
-                  value={templateId}
-                  onValueChange={(val) => setTemplateId(val ?? '')}
-                >
-                  <SelectTrigger className="w-full" id="doc-template">
-                    <SelectValue placeholder="Select a template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredTemplates.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
 
           <DialogFooter className="mt-4">
             <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting || !documentType || !name.trim()}>
+            <Button type="submit" disabled={submitting || !canSubmit}>
               {submitting ? 'Creating...' : 'Create'}
             </Button>
           </DialogFooter>
