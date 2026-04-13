@@ -108,6 +108,8 @@ export interface Opportunity {
   snapshotCitations: Record<string, string>
   sourceType: string
   mandateFits: MandateFit[]
+  strategyFit?: 'strong' | 'moderate' | 'limited' | null
+  recommendation?: 'pass' | 'approve' | 'watch' | null
   createdBy: string
   createdAt: string
   updatedAt: string
@@ -170,7 +172,7 @@ export interface DashboardSummary {
 
 // ── Documents ───────────────────────────────────────────────────────
 
-export type DocumentType = 'investment_memo' | 'pre_screening' | 'ddq' | 'news' | 'market_analysis' | 'custom'
+export type DocumentType = 'investment_memo' | 'pre_screening' | 'ddq' | 'news' | 'market_analysis' | 'custom' | 'note'
 export type DocumentStatus = 'draft' | 'in_review' | 'approved'
 
 export interface Document {
@@ -309,11 +311,12 @@ export interface GoogleDriveImportJob {
 
 // ── Workspace ───────────────────────────────────────────────────────
 
-export type WorkspaceTabType = 'snapshot' | 'document'
+export type WorkspaceTabType = 'snapshot' | 'document' | 'note' | 'source_file'
 
 export interface WorkspaceTab {
   id: string
   type: WorkspaceTabType
   label: string
   documentId?: string
+  closeable?: boolean
 }

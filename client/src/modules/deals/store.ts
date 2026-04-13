@@ -12,6 +12,7 @@ import type {
   DashboardSummary,
   Document,
   WorkspaceTab,
+  SourceFile,
   EmailAccount,
   SyncedEmail,
   GoogleDriveAccount,
@@ -65,16 +66,18 @@ interface DealsState {
   // Workspace
   activeOpportunity: Opportunity | null
   workspaceDocuments: Document[]
+  workspaceSourceFiles: SourceFile[]
   workspaceTabs: WorkspaceTab[]
-  leftPanelTabId: string | null
-  rightPanelTabId: string | null
+  activeTabId: string | null
+  sidebarCollapsed: boolean
   loadingWorkspace: boolean
 
   fetchWorkspace: (opportunityId: string) => Promise<void>
   addWorkspaceDocument: (doc: Document) => void
   updateWorkspaceDocument: (doc: Document) => void
-  setLeftPanel: (tabId: string) => void
-  setRightPanel: (tabId: string) => void
+  openTab: (tab: WorkspaceTab) => void
+  closeTab: (tabId: string) => void
+  toggleSidebar: () => void
 }
 
 export const useDealsStore = create<DealsState>((set, get) => ({
@@ -208,17 +211,19 @@ export const useDealsStore = create<DealsState>((set, get) => ({
   // Workspace
   activeOpportunity: null,
   workspaceDocuments: [],
+  workspaceSourceFiles: [],
   workspaceTabs: [],
-  leftPanelTabId: null,
-  rightPanelTabId: null,
+  activeTabId: null,
+  sidebarCollapsed: false,
   loadingWorkspace: false,
 
   fetchWorkspace: async (opportunityId: string) => {
     set({ loadingWorkspace: true })
     try {
-      const [opportunity, documents] = await Promise.all([
+      const [opportunity, documents, sourceFiles] = await Promise.all([
         dealsApi.getOpportunity(opportunityId),
         dealsApi.listDocuments(opportunityId),
+        dealsApi.listSourceFiles(opportunityId),
       ])
       const tabs: WorkspaceTab[] = [
         { id: 'snapshot', type: 'snapshot' as const, label: 'Snapshot' },
@@ -227,14 +232,15 @@ export const useDealsStore = create<DealsState>((set, get) => ({
           type: 'document' as const,
           label: d.name,
           documentId: d.id,
+          closeable: true,
         })),
       ]
       set({
         activeOpportunity: opportunity,
         workspaceDocuments: documents,
+        workspaceSourceFiles: sourceFiles,
         workspaceTabs: tabs,
-        leftPanelTabId: 'snapshot',
-        rightPanelTabId: documents[0]?.id ?? null,
+        activeTabId: 'snapshot',
       })
     } finally {
       set({ loadingWorkspace: false })
@@ -243,11 +249,11 @@ export const useDealsStore = create<DealsState>((set, get) => ({
 
   addWorkspaceDocument: (doc: Document) => {
     const state = get()
-    const newTab: WorkspaceTab = { id: doc.id, type: 'document', label: doc.name, documentId: doc.id }
+    const newTab: WorkspaceTab = { id: doc.id, type: 'document', label: doc.name, documentId: doc.id, closeable: true }
     set({
       workspaceDocuments: [...state.workspaceDocuments, doc],
       workspaceTabs: [...state.workspaceTabs, newTab],
-      rightPanelTabId: doc.id,
+      activeTabId: doc.id,
     })
   },
 
@@ -258,6 +264,34 @@ export const useDealsStore = create<DealsState>((set, get) => ({
     })
   },
 
-  setLeftPanel: (tabId: string) => set({ leftPanelTabId: tabId }),
-  setRightPanel: (tabId: string) => set({ rightPanelTabId: tabId }),
+  openTab: (tab: WorkspaceTab) => {
+    const state = get()
+    const exists = state.workspaceTabs.some((t) => t.id === tab.id)
+    if (exists) {
+      set({ activeTabId: tab.id })
+    } else {
+      set({
+        workspaceTabs: [...state.workspaceTabs, tab],
+        activeTabId: tab.id,
+      })
+    }
+  },
+
+  closeTab: (tabId: string) => {
+    const state = get()
+    const idx = state.workspaceTabs.findIndex((t) => t.id === tabId)
+    if (idx === -1) return
+    const newTabs = state.workspaceTabs.filter((t) => t.id !== tabId)
+    let newActiveTabId = state.activeTabId
+    if (state.activeTabId === tabId) {
+      // Activate adjacent tab: prefer the one after, then before, then null
+      const adjacentTab = newTabs[idx] ?? newTabs[idx - 1] ?? null
+      newActiveTabId = adjacentTab?.id ?? null
+    }
+    set({ workspaceTabs: newTabs, activeTabId: newActiveTabId })
+  },
+
+  toggleSidebar: () => {
+    set({ sidebarCollapsed: !get().sidebarCollapsed })
+  },
 }))
