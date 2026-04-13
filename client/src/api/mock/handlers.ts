@@ -11,10 +11,36 @@ import {
   MOCK_USERS,
   MOCK_INVITATIONS,
 } from './data/admin'
+import {
+  MOCK_INVESTMENT_TYPES,
+  MOCK_DOCUMENT_TEMPLATES,
+  MOCK_MANDATES,
+  MOCK_ASSET_MANAGERS,
+  MOCK_OPPORTUNITIES,
+  MOCK_NEWS_ITEMS,
+  MOCK_DASHBOARD_SUMMARY,
+  MOCK_DOCUMENTS,
+  MOCK_REVIEWS,
+  MOCK_SHARES,
+} from './data/deals'
 import type { OrgProfile, OrgBranding, OrgPreferences, InviteUserRequest, ModuleRoleAssignment } from '@/modules/admin/types'
+import type { InvestmentType, DocumentTemplate, Mandate, Opportunity, AssetManager } from '@/modules/deals/types'
+import type { WorkspaceDocument, DocumentReview, DocumentShare } from './data/deals'
 
 const dynamicRuns = new Map<string, AgentRunResponse>()
 const runTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+// Deals mutable state
+const investmentTypes = [...MOCK_INVESTMENT_TYPES]
+const documentTemplates = [...MOCK_DOCUMENT_TEMPLATES]
+const mandates = [...MOCK_MANDATES]
+const assetManagers = [...MOCK_ASSET_MANAGERS]
+const opportunities = [...MOCK_OPPORTUNITIES]
+const newsItems = [...MOCK_NEWS_ITEMS]
+const dashboardSummary = { ...MOCK_DASHBOARD_SUMMARY }
+const documents = [...MOCK_DOCUMENTS]
+const reviews = [...MOCK_REVIEWS]
+const shares = [...MOCK_SHARES]
 
 // Admin mutable state
 const orgProfile = { ...MOCK_ORG_PROFILE }
@@ -388,5 +414,435 @@ export const handlers = [
   http.put('/api/account/password', async () => {
     await delay(500)
     return HttpResponse.json({ success: true })
+  }),
+
+  // ── Deals: Investment Types ─────────────────────────────────────────
+
+  http.get('/api/deals/settings/investment-types', async () => {
+    await delay(300)
+    return HttpResponse.json(investmentTypes)
+  }),
+
+  http.get('/api/deals/settings/investment-types/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const item = investmentTypes.find(t => t.id === id)
+    if (!item) return HttpResponse.json({ error: 'Investment type not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  http.post('/api/deals/settings/investment-types', async ({ request }) => {
+    await delay(400)
+    const body = await request.json() as Partial<InvestmentType>
+    const now = new Date().toISOString()
+    const newItem: InvestmentType = {
+      id: `invtype-${Date.now().toString(36)}`,
+      name: body.name || 'Untitled',
+      slug: body.slug || body.name?.toLowerCase().replace(/\s+/g, '-') || 'untitled',
+      isSystem: false,
+      sortOrder: body.sortOrder ?? investmentTypes.length + 1,
+      snapshotConfig: body.snapshotConfig || { sections: [] },
+      createdAt: now,
+      updatedAt: now,
+    }
+    investmentTypes.push(newItem)
+    return HttpResponse.json(newItem, { status: 201 })
+  }),
+
+  http.put('/api/deals/settings/investment-types/:id', async ({ params, request }) => {
+    await delay(400)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<InvestmentType>
+    const idx = investmentTypes.findIndex(t => t.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Investment type not found' }, { status: 404 })
+    investmentTypes[idx] = { ...investmentTypes[idx], ...body, updatedAt: new Date().toISOString() }
+    return HttpResponse.json(investmentTypes[idx])
+  }),
+
+  http.delete('/api/deals/settings/investment-types/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const idx = investmentTypes.findIndex(t => t.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Investment type not found' }, { status: 404 })
+    investmentTypes.splice(idx, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ── Deals: Document Templates ───────────────────────────────────────
+
+  http.get('/api/deals/settings/templates', async ({ request }) => {
+    await delay(300)
+    const url = new URL(request.url)
+    const investmentTypeId = url.searchParams.get('investmentTypeId')
+    let result = documentTemplates
+    if (investmentTypeId) {
+      result = result.filter(t => t.investmentTypeId === investmentTypeId)
+    }
+    return HttpResponse.json(result)
+  }),
+
+  http.get('/api/deals/settings/templates/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const item = documentTemplates.find(t => t.id === id)
+    if (!item) return HttpResponse.json({ error: 'Template not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  http.put('/api/deals/settings/templates/:id', async ({ params, request }) => {
+    await delay(400)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<DocumentTemplate>
+    const idx = documentTemplates.findIndex(t => t.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Template not found' }, { status: 404 })
+    documentTemplates[idx] = { ...documentTemplates[idx], ...body, updatedAt: new Date().toISOString() }
+    return HttpResponse.json(documentTemplates[idx])
+  }),
+
+  // ── Deals: Mandates ─────────────────────────────────────────────────
+
+  http.get('/api/deals/mandates', async ({ request }) => {
+    await delay(300)
+    const url = new URL(request.url)
+    const status = url.searchParams.get('status')
+    let result = mandates
+    if (status) {
+      result = result.filter(m => m.status === status)
+    }
+    return HttpResponse.json(result)
+  }),
+
+  http.post('/api/deals/mandates', async ({ request }) => {
+    await delay(400)
+    const body = await request.json() as Partial<Mandate>
+    const now = new Date().toISOString()
+    const newItem: Mandate = {
+      id: `mandate-${Date.now().toString(36)}`,
+      name: body.name || 'Untitled Mandate',
+      status: body.status || 'draft',
+      targetAllocation: body.targetAllocation ?? null,
+      expectedReturn: body.expectedReturn || '',
+      timeHorizon: body.timeHorizon || '',
+      investmentTypes: body.investmentTypes || [],
+      assetAllocation: body.assetAllocation ?? null,
+      targetSectors: body.targetSectors || [],
+      geographicFocus: body.geographicFocus || [],
+      investmentCriteria: body.investmentCriteria || '',
+      investmentConstraints: body.investmentConstraints || '',
+      investmentStrategy: body.investmentStrategy || '',
+      createdBy: 'user-raoof',
+      createdAt: now,
+      updatedAt: now,
+    }
+    mandates.push(newItem)
+    return HttpResponse.json(newItem, { status: 201 })
+  }),
+
+  http.get('/api/deals/mandates/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const item = mandates.find(m => m.id === id)
+    if (!item) return HttpResponse.json({ error: 'Mandate not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  http.put('/api/deals/mandates/:id', async ({ params, request }) => {
+    await delay(400)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<Mandate>
+    const idx = mandates.findIndex(m => m.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Mandate not found' }, { status: 404 })
+    mandates[idx] = { ...mandates[idx], ...body, updatedAt: new Date().toISOString() }
+    return HttpResponse.json(mandates[idx])
+  }),
+
+  http.delete('/api/deals/mandates/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const idx = mandates.findIndex(m => m.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Mandate not found' }, { status: 404 })
+    mandates.splice(idx, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ── Deals: Opportunities ────────────────────────────────────────────
+
+  http.get('/api/deals/opportunities', async ({ request }) => {
+    await delay(300)
+    const url = new URL(request.url)
+    const pipelineStatus = url.searchParams.get('pipelineStatus')
+    const assignedTo = url.searchParams.get('assignedTo')
+    let result = opportunities
+    if (pipelineStatus) {
+      result = result.filter(o => o.pipelineStatus === pipelineStatus)
+    }
+    if (assignedTo) {
+      result = result.filter(o => o.assignedTo === assignedTo)
+    }
+    return HttpResponse.json(result)
+  }),
+
+  http.post('/api/deals/opportunities', async ({ request }) => {
+    await delay(400)
+    const body = await request.json() as Partial<Opportunity>
+    const now = new Date().toISOString()
+    const newItem: Opportunity = {
+      id: `opp-${Date.now().toString(36)}`,
+      name: body.name || 'Untitled Opportunity',
+      investmentTypeId: body.investmentTypeId || '',
+      investmentTypeName: body.investmentTypeName || '',
+      pipelineStatus: body.pipelineStatus || 'new',
+      assetManagerId: body.assetManagerId || '',
+      assetManagerName: body.assetManagerName || '',
+      assignedTo: body.assignedTo || 'user-raoof',
+      snapshotData: body.snapshotData || {},
+      snapshotCitations: body.snapshotCitations || {},
+      sourceType: body.sourceType || 'manual',
+      mandateFits: body.mandateFits || [],
+      createdBy: 'user-raoof',
+      createdAt: now,
+      updatedAt: now,
+    }
+    opportunities.push(newItem)
+    return HttpResponse.json(newItem, { status: 201 })
+  }),
+
+  http.get('/api/deals/opportunities/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const item = opportunities.find(o => o.id === id)
+    if (!item) return HttpResponse.json({ error: 'Opportunity not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  http.put('/api/deals/opportunities/:id', async ({ params, request }) => {
+    await delay(400)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<Opportunity>
+    const idx = opportunities.findIndex(o => o.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Opportunity not found' }, { status: 404 })
+    opportunities[idx] = { ...opportunities[idx], ...body, updatedAt: new Date().toISOString() }
+    return HttpResponse.json(opportunities[idx])
+  }),
+
+  http.delete('/api/deals/opportunities/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const idx = opportunities.findIndex(o => o.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Opportunity not found' }, { status: 404 })
+    opportunities.splice(idx, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ── Deals: Asset Managers ───────────────────────────────────────────
+
+  http.get('/api/deals/asset-managers', async ({ request }) => {
+    await delay(300)
+    const url = new URL(request.url)
+    const type = url.searchParams.get('type')
+    let result = assetManagers
+    if (type) {
+      result = result.filter(am => am.type === type)
+    }
+    return HttpResponse.json(result)
+  }),
+
+  http.post('/api/deals/asset-managers', async ({ request }) => {
+    await delay(400)
+    const body = await request.json() as Partial<AssetManager>
+    const now = new Date().toISOString()
+    const newItem: AssetManager = {
+      id: `am-${Date.now().toString(36)}`,
+      name: body.name || 'Untitled Manager',
+      type: body.type ?? null,
+      location: body.location ?? null,
+      description: body.description ?? null,
+      fundInfo: body.fundInfo || {},
+      firmInfo: body.firmInfo || {},
+      strategy: body.strategy || {},
+      characteristics: body.characteristics || {},
+      createdByType: 'manual',
+      createdAt: now,
+      updatedAt: now,
+    }
+    assetManagers.push(newItem)
+    return HttpResponse.json(newItem, { status: 201 })
+  }),
+
+  http.get('/api/deals/asset-managers/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const item = assetManagers.find(am => am.id === id)
+    if (!item) return HttpResponse.json({ error: 'Asset manager not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  http.put('/api/deals/asset-managers/:id', async ({ params, request }) => {
+    await delay(400)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<AssetManager>
+    const idx = assetManagers.findIndex(am => am.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Asset manager not found' }, { status: 404 })
+    assetManagers[idx] = { ...assetManagers[idx], ...body, updatedAt: new Date().toISOString() }
+    return HttpResponse.json(assetManagers[idx])
+  }),
+
+  http.delete('/api/deals/asset-managers/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const idx = assetManagers.findIndex(am => am.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Asset manager not found' }, { status: 404 })
+    assetManagers.splice(idx, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ── Deals: News ─────────────────────────────────────────────────────
+
+  http.get('/api/deals/news', async ({ request }) => {
+    await delay(300)
+    const url = new URL(request.url)
+    const category = url.searchParams.get('category')
+    let result = newsItems
+    if (category) {
+      result = result.filter(n => n.category === category)
+    }
+    return HttpResponse.json(result)
+  }),
+
+  // ── Deals: Dashboard ────────────────────────────────────────────────
+
+  http.get('/api/deals/dashboard/summary', async () => {
+    await delay(300)
+    return HttpResponse.json(dashboardSummary)
+  }),
+
+  // ── Deals: Workspace Documents ──────────────────────────────────────
+
+  http.get('/api/deals/opportunities/:oppId/documents', async ({ params }) => {
+    await delay(300)
+    const { oppId } = params as { oppId: string }
+    const result = documents.filter(d => d.opportunityId === oppId)
+    return HttpResponse.json(result)
+  }),
+
+  http.post('/api/deals/opportunities/:oppId/documents', async ({ params, request }) => {
+    await delay(400)
+    const { oppId } = params as { oppId: string }
+    const body = await request.json() as Partial<WorkspaceDocument>
+    const now = new Date().toISOString()
+    const newDoc: WorkspaceDocument = {
+      id: `doc-${Date.now().toString(36)}`,
+      opportunityId: oppId as string,
+      templateId: body.templateId || '',
+      templateName: body.templateName || '',
+      title: body.title || 'Untitled Document',
+      content: body.content || '',
+      status: 'draft',
+      createdBy: 'user-raoof',
+      createdAt: now,
+      updatedAt: now,
+    }
+    documents.push(newDoc)
+    return HttpResponse.json(newDoc, { status: 201 })
+  }),
+
+  http.get('/api/deals/opportunities/:oppId/documents/:docId', async ({ params }) => {
+    await delay(300)
+    const { oppId, docId } = params as { oppId: string; docId: string }
+    const doc = documents.find(d => d.id === docId && d.opportunityId === oppId)
+    if (!doc) return HttpResponse.json({ error: 'Document not found' }, { status: 404 })
+    return HttpResponse.json(doc)
+  }),
+
+  http.put('/api/deals/opportunities/:oppId/documents/:docId', async ({ params, request }) => {
+    await delay(400)
+    const { oppId, docId } = params as { oppId: string; docId: string }
+    const body = await request.json() as Partial<WorkspaceDocument>
+    const idx = documents.findIndex(d => d.id === docId && d.opportunityId === oppId)
+    if (idx === -1) return HttpResponse.json({ error: 'Document not found' }, { status: 404 })
+    documents[idx] = { ...documents[idx], ...body, updatedAt: new Date().toISOString() }
+    return HttpResponse.json(documents[idx])
+  }),
+
+  http.delete('/api/deals/opportunities/:oppId/documents/:docId', async ({ params }) => {
+    await delay(300)
+    const { oppId, docId } = params as { oppId: string; docId: string }
+    const idx = documents.findIndex(d => d.id === docId && d.opportunityId === oppId)
+    if (idx === -1) return HttpResponse.json({ error: 'Document not found' }, { status: 404 })
+    documents.splice(idx, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ── Deals: Reviews ──────────────────────────────────────────────────
+
+  http.get('/api/deals/reviews', async () => {
+    await delay(300)
+    return HttpResponse.json(reviews)
+  }),
+
+  http.post('/api/deals/reviews', async ({ request }) => {
+    await delay(400)
+    const body = await request.json() as { documentId: string; reviewerId: string }
+    const now = new Date().toISOString()
+    const newReview: DocumentReview = {
+      id: `review-${Date.now().toString(36)}`,
+      documentId: body.documentId,
+      reviewerId: body.reviewerId,
+      status: 'pending',
+      comments: null,
+      createdAt: now,
+      updatedAt: now,
+    }
+    reviews.push(newReview)
+    // Set the document status to in_review
+    const docIdx = documents.findIndex(d => d.id === body.documentId)
+    if (docIdx !== -1) {
+      documents[docIdx].status = 'in_review'
+      documents[docIdx].updatedAt = now
+    }
+    return HttpResponse.json(newReview, { status: 201 })
+  }),
+
+  http.put('/api/deals/reviews/:id', async ({ params, request }) => {
+    await delay(400)
+    const { id } = params as { id: string }
+    const body = await request.json() as { status: 'approved' | 'changes_requested'; comments?: string }
+    const idx = reviews.findIndex(r => r.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Review not found' }, { status: 404 })
+    const now = new Date().toISOString()
+    reviews[idx] = { ...reviews[idx], status: body.status, comments: body.comments ?? null, updatedAt: now }
+    // Update the document status accordingly
+    const docIdx = documents.findIndex(d => d.id === reviews[idx].documentId)
+    if (docIdx !== -1) {
+      documents[docIdx].status = body.status
+      documents[docIdx].updatedAt = now
+    }
+    return HttpResponse.json(reviews[idx])
+  }),
+
+  // ── Deals: Shares ───────────────────────────────────────────────────
+
+  http.get('/api/deals/documents/:docId/shares', async ({ params }) => {
+    await delay(300)
+    const { docId } = params as { docId: string }
+    const result = shares.filter(s => s.documentId === docId)
+    return HttpResponse.json(result)
+  }),
+
+  http.post('/api/deals/documents/:docId/share', async ({ params, request }) => {
+    await delay(400)
+    const { docId } = params as { docId: string }
+    const body = await request.json() as { sharedWith: string; permission: 'view' | 'comment' | 'edit' }[]
+    const now = new Date().toISOString()
+    const newShares: DocumentShare[] = (Array.isArray(body) ? body : [body]).map(s => ({
+      id: `share-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
+      documentId: docId as string,
+      sharedWith: s.sharedWith,
+      permission: s.permission,
+      sharedBy: 'user-raoof',
+      createdAt: now,
+    }))
+    shares.push(...newShares)
+    return HttpResponse.json(newShares, { status: 201 })
   }),
 ]
