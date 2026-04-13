@@ -45,6 +45,38 @@ const statusConfig: Record<DocumentStatus, { label: string; className: string }>
   approved: { label: 'Approved', className: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' },
 }
 
+function ToolbarButton({
+  onClick,
+  active,
+  disabled,
+  children,
+  title,
+}: {
+  onClick: () => void
+  active?: boolean
+  disabled?: boolean
+  children: React.ReactNode
+  title: string
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={cn('h-7 w-7', active && 'bg-accent text-accent-foreground')}
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      type="button"
+    >
+      {children}
+    </Button>
+  )
+}
+
+function ToolbarSeparator() {
+  return <div className="h-5 w-px bg-border mx-1" />
+}
+
 interface EditorToolbarProps {
   editor: Editor | null
   disabled: boolean
@@ -53,61 +85,31 @@ interface EditorToolbarProps {
 function EditorToolbar({ editor, disabled }: EditorToolbarProps) {
   if (!editor) return null
 
-  function ToolbarButton({
-    onClick,
-    active,
-    children,
-    title,
-  }: {
-    onClick: () => void
-    active?: boolean
-    children: React.ReactNode
-    title: string
-  }) {
-    return (
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn('h-7 w-7', active && 'bg-accent text-accent-foreground')}
-        onClick={onClick}
-        disabled={disabled}
-        title={title}
-        type="button"
-      >
-        {children}
-      </Button>
-    )
-  }
-
-  function Separator() {
-    return <div className="h-5 w-px bg-border mx-1" />
-  }
-
   return (
     <div className="flex items-center gap-0.5 px-2 py-1.5 border-b flex-wrap">
       {/* Text formatting */}
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().toggleBold().run()}
         active={editor.isActive('bold')}
         title="Bold"
       >
         <Bold className="h-4 w-4" />
       </ToolbarButton>
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().toggleItalic().run()}
         active={editor.isActive('italic')}
         title="Italic"
       >
         <Italic className="h-4 w-4" />
       </ToolbarButton>
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().toggleUnderline().run()}
         active={editor.isActive('underline')}
         title="Underline"
       >
         <UnderlineIcon className="h-4 w-4" />
       </ToolbarButton>
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().toggleStrike().run()}
         active={editor.isActive('strike')}
         title="Strikethrough"
@@ -115,31 +117,31 @@ function EditorToolbar({ editor, disabled }: EditorToolbarProps) {
         <Strikethrough className="h-4 w-4" />
       </ToolbarButton>
 
-      <Separator />
+      <ToolbarSeparator />
 
       {/* Headings */}
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         active={editor.isActive('heading', { level: 1 })}
         title="Heading 1"
       >
         <Heading1 className="h-4 w-4" />
       </ToolbarButton>
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         active={editor.isActive('heading', { level: 2 })}
         title="Heading 2"
       >
         <Heading2 className="h-4 w-4" />
       </ToolbarButton>
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         active={editor.isActive('heading', { level: 3 })}
         title="Heading 3"
       >
         <Heading3 className="h-4 w-4" />
       </ToolbarButton>
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
         active={editor.isActive('heading', { level: 4 })}
         title="Heading 4"
@@ -147,17 +149,17 @@ function EditorToolbar({ editor, disabled }: EditorToolbarProps) {
         <Heading4 className="h-4 w-4" />
       </ToolbarButton>
 
-      <Separator />
+      <ToolbarSeparator />
 
       {/* Lists */}
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         active={editor.isActive('bulletList')}
         title="Bullet List"
       >
         <List className="h-4 w-4" />
       </ToolbarButton>
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         active={editor.isActive('orderedList')}
         title="Ordered List"
@@ -165,41 +167,41 @@ function EditorToolbar({ editor, disabled }: EditorToolbarProps) {
         <ListOrdered className="h-4 w-4" />
       </ToolbarButton>
 
-      <Separator />
+      <ToolbarSeparator />
 
       {/* Block elements */}
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         active={editor.isActive('blockquote')}
         title="Blockquote"
       >
         <Quote className="h-4 w-4" />
       </ToolbarButton>
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
         title="Horizontal Rule"
       >
         <Minus className="h-4 w-4" />
       </ToolbarButton>
 
-      <Separator />
+      <ToolbarSeparator />
 
       {/* Alignment */}
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().setTextAlign('left').run()}
         active={editor.isActive({ textAlign: 'left' })}
         title="Align Left"
       >
         <AlignLeft className="h-4 w-4" />
       </ToolbarButton>
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().setTextAlign('center').run()}
         active={editor.isActive({ textAlign: 'center' })}
         title="Align Center"
       >
         <AlignCenter className="h-4 w-4" />
       </ToolbarButton>
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().setTextAlign('right').run()}
         active={editor.isActive({ textAlign: 'right' })}
         title="Align Right"
@@ -207,10 +209,10 @@ function EditorToolbar({ editor, disabled }: EditorToolbarProps) {
         <AlignRight className="h-4 w-4" />
       </ToolbarButton>
 
-      <Separator />
+      <ToolbarSeparator />
 
       {/* Image */}
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => {
           const url = window.prompt('Image URL:')
           if (url) {
@@ -222,10 +224,10 @@ function EditorToolbar({ editor, disabled }: EditorToolbarProps) {
         <ImageIcon className="h-4 w-4" />
       </ToolbarButton>
 
-      <Separator />
+      <ToolbarSeparator />
 
       {/* Code */}
-      <ToolbarButton
+      <ToolbarButton disabled={disabled}
         onClick={() => editor.chain().focus().toggleCode().run()}
         active={editor.isActive('code')}
         title="Inline Code"

@@ -24,7 +24,7 @@ export function ImportProgress({ jobId, onComplete }: ImportProgressProps) {
         if (result.status === 'completed' || result.status === 'failed') {
           if (intervalId) clearInterval(intervalId)
         }
-      } catch (err) {
+      } catch {
         setError('Failed to fetch import status')
         if (intervalId) clearInterval(intervalId)
       }
