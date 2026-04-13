@@ -22,6 +22,8 @@ import { OpportunityListPage } from '@/modules/deals/pages/OpportunityListPage'
 import { SettingsPage as DealsSettingsPage } from '@/modules/deals/pages/SettingsPage'
 import { MandateListPage } from '@/modules/deals/pages/MandateListPage'
 import { MandateDetailPage } from '@/modules/deals/pages/MandateDetailPage'
+import { AssetManagerListPage } from '@/modules/deals/pages/AssetManagerListPage'
+import { AssetManagerDetailPage } from '@/modules/deals/pages/AssetManagerDetailPage'
 import { NewsPage } from '@/modules/deals/pages/NewsPage'
 import { CompanyProfilePage } from '@/modules/admin/pages/CompanyProfilePage'
 import { BrandingPage } from '@/modules/admin/pages/BrandingPage'
@@ -91,6 +93,8 @@ function App() {
             <Route path="mandates" element={<MandateListPage />} />
             <Route path="mandates/:mandateId" element={<MandateDetailPage />} />
             <Route path="opportunities" element={<OpportunityListPage />} />
+            <Route path="asset-managers" element={<AssetManagerListPage />} />
+            <Route path="asset-managers/:assetManagerId" element={<AssetManagerDetailPage />} />
             <Route path="news" element={<NewsPage />} />
             <Route path="settings" element={<DealsSettingsPage />} />
           </Route>
