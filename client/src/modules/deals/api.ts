@@ -9,6 +9,10 @@ import type {
   AssetManager,
   NewsItem,
   DashboardSummary,
+  Document,
+  SourceFile,
+  DocumentReview,
+  DocumentShare,
 } from './types'
 
 export const dealsApi = {
@@ -76,4 +80,41 @@ export const dealsApi = {
 
   // Dashboard
   getDashboardSummary: () => api.get<DashboardSummary>('/deals/dashboard/summary'),
+
+  // Documents
+  listDocuments: (opportunityId: string) =>
+    api.get<Document[]>(`/deals/opportunities/${opportunityId}/documents`),
+  createDocument: (opportunityId: string, data: { name: string; documentType: string; templateId?: string; content?: string }) =>
+    api.post<Document>(`/deals/opportunities/${opportunityId}/documents`, data),
+  getDocument: (opportunityId: string, docId: string) =>
+    api.get<Document>(`/deals/opportunities/${opportunityId}/documents/${docId}`),
+  updateDocument: (opportunityId: string, docId: string, data: { name?: string; content?: string; status?: string }) =>
+    api.put<Document>(`/deals/opportunities/${opportunityId}/documents/${docId}`, data),
+  deleteDocument: (opportunityId: string, docId: string) =>
+    api.delete<void>(`/deals/opportunities/${opportunityId}/documents/${docId}`),
+
+  // Source Files
+  listSourceFiles: (opportunityId: string) =>
+    api.get<SourceFile[]>(`/deals/opportunities/${opportunityId}/files`),
+
+  // Reviews
+  listReviews: (filters?: { reviewerId?: string; requestedBy?: string; status?: string }) => {
+    const params = new URLSearchParams()
+    if (filters?.reviewerId) params.set('reviewerId', filters.reviewerId)
+    if (filters?.requestedBy) params.set('requestedBy', filters.requestedBy)
+    if (filters?.status) params.set('status', filters.status)
+    const qs = params.toString()
+    return api.get<DocumentReview[]>(`/deals/reviews${qs ? `?${qs}` : ''}`)
+  },
+  createReview: (data: { reviewerId: string; documentIds: string[] }) =>
+    api.post<DocumentReview>('/deals/reviews', data),
+  updateReview: (reviewId: string, data: { status: string; rationale?: string }) =>
+    api.put<DocumentReview>(`/deals/reviews/${reviewId}`, data),
+
+  // Shares
+  listShares: (docId: string) => api.get<DocumentShare[]>(`/deals/documents/${docId}/shares`),
+  shareDocument: (docId: string, data: { sharedWith: string[]; permission?: string }) =>
+    api.post<DocumentShare[]>(`/deals/documents/${docId}/share`, data),
+  removeShare: (docId: string, shareId: string) =>
+    api.delete<void>(`/deals/documents/${docId}/shares/${shareId}`),
 }

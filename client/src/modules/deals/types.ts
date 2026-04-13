@@ -167,3 +167,80 @@ export interface DashboardSummary {
   mandateAllocations: MandateAllocationSummary[]
   recentNews: NewsItem[]
 }
+
+// ── Documents ───────────────────────────────────────────────────────
+
+export type DocumentType = 'investment_memo' | 'pre_screening' | 'ddq' | 'news' | 'market_analysis' | 'custom'
+export type DocumentStatus = 'draft' | 'in_review' | 'approved'
+
+export interface Document {
+  id: string
+  opportunityId: string
+  templateId: string | null
+  name: string
+  documentType: DocumentType
+  content: string | null
+  status: DocumentStatus
+  version: number
+  createdBy: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+// ── Document Reviews ────────────────────────────────────────────────
+
+export type ReviewStatus = 'pending' | 'in_review' | 'approved' | 'changes_requested'
+
+export interface ReviewDocumentItem {
+  documentId: string
+  documentName: string
+  documentType: string
+}
+
+export interface DocumentReview {
+  id: string
+  reviewerId: string
+  requestedBy: string
+  status: ReviewStatus
+  rationale: string | null
+  rationaleGenerated: boolean
+  requestedAt: string
+  reviewedAt: string | null
+  documents: ReviewDocumentItem[]
+}
+
+// ── Document Shares ─────────────────────────────────────────────────
+
+export interface DocumentShare {
+  id: string
+  documentId: string
+  sharedWith: string
+  sharedBy: string
+  permission: 'comment' | 'view'
+  createdAt: string
+}
+
+// ── Source Files ────────────────────────────────────────────────────
+
+export interface SourceFile {
+  id: string
+  opportunityId: string
+  fileName: string
+  fileUrl: string
+  fileType: string | null
+  fileSize: number | null
+  processed: boolean
+  sourceOrigin: string | null
+  createdAt: string
+}
+
+// ── Workspace ───────────────────────────────────────────────────────
+
+export type WorkspaceTabType = 'snapshot' | 'document'
+
+export interface WorkspaceTab {
+  id: string
+  type: WorkspaceTabType
+  label: string
+  documentId?: string
+}

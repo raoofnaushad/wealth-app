@@ -10,6 +10,8 @@ import type {
   AssetManager,
   NewsItem,
   DashboardSummary,
+  Document,
+  WorkspaceTab,
 } from './types'
 
 interface DealsState {
@@ -43,9 +45,23 @@ interface DealsState {
   fetchAssetManagers: (type?: string) => Promise<void>
   fetchNews: (category?: string) => Promise<void>
   fetchDashboardSummary: () => Promise<void>
+
+  // Workspace
+  activeOpportunity: Opportunity | null
+  workspaceDocuments: Document[]
+  workspaceTabs: WorkspaceTab[]
+  leftPanelTabId: string | null
+  rightPanelTabId: string | null
+  loadingWorkspace: boolean
+
+  fetchWorkspace: (opportunityId: string) => Promise<void>
+  addWorkspaceDocument: (doc: Document) => void
+  updateWorkspaceDocument: (doc: Document) => void
+  setLeftPanel: (tabId: string) => void
+  setRightPanel: (tabId: string) => void
 }
 
-export const useDealsStore = create<DealsState>((set) => ({
+export const useDealsStore = create<DealsState>((set, get) => ({
   investmentTypes: [],
   templates: [],
   mandates: [],
@@ -135,4 +151,60 @@ export const useDealsStore = create<DealsState>((set) => ({
       set({ loadingDashboard: false })
     }
   },
+
+  // Workspace
+  activeOpportunity: null,
+  workspaceDocuments: [],
+  workspaceTabs: [],
+  leftPanelTabId: null,
+  rightPanelTabId: null,
+  loadingWorkspace: false,
+
+  fetchWorkspace: async (opportunityId: string) => {
+    set({ loadingWorkspace: true })
+    try {
+      const [opportunity, documents] = await Promise.all([
+        dealsApi.getOpportunity(opportunityId),
+        dealsApi.listDocuments(opportunityId),
+      ])
+      const tabs: WorkspaceTab[] = [
+        { id: 'snapshot', type: 'snapshot' as const, label: 'Snapshot' },
+        ...documents.map((d: Document) => ({
+          id: d.id,
+          type: 'document' as const,
+          label: d.name,
+          documentId: d.id,
+        })),
+      ]
+      set({
+        activeOpportunity: opportunity,
+        workspaceDocuments: documents,
+        workspaceTabs: tabs,
+        leftPanelTabId: 'snapshot',
+        rightPanelTabId: documents[0]?.id ?? null,
+      })
+    } finally {
+      set({ loadingWorkspace: false })
+    }
+  },
+
+  addWorkspaceDocument: (doc: Document) => {
+    const state = get()
+    const newTab: WorkspaceTab = { id: doc.id, type: 'document', label: doc.name, documentId: doc.id }
+    set({
+      workspaceDocuments: [...state.workspaceDocuments, doc],
+      workspaceTabs: [...state.workspaceTabs, newTab],
+      rightPanelTabId: doc.id,
+    })
+  },
+
+  updateWorkspaceDocument: (doc: Document) => {
+    const state = get()
+    set({
+      workspaceDocuments: state.workspaceDocuments.map((d) => d.id === doc.id ? doc : d),
+    })
+  },
+
+  setLeftPanel: (tabId: string) => set({ leftPanelTabId: tabId }),
+  setRightPanel: (tabId: string) => set({ rightPanelTabId: tabId }),
 }))
