@@ -47,10 +47,8 @@ export function UserAccessActions({ user, onUpdate }: UserAccessActionsProps) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+      <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="h-8 w-8 p-0" />}>
+        <MoreHorizontal className="h-4 w-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         {user.status === 'active' ? (
@@ -86,13 +84,13 @@ export function UserAccessActions({ user, onUpdate }: UserAccessActionsProps) {
               <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                 <Plus className="h-3 w-3" />Grant Module Access
               </p>
-              <Select value={grantModule} onValueChange={(v) => setGrantModule(v as ModuleSlug)}>
+              <Select value={grantModule} onValueChange={(v) => setGrantModule((v ?? '') as ModuleSlug)}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Module" /></SelectTrigger>
                 <SelectContent>
                   {availableModules.map((m) => (<SelectItem key={m} value={m} className="capitalize">{m}</SelectItem>))}
                 </SelectContent>
               </Select>
-              <Select value={grantRole} onValueChange={setGrantRole}>
+              <Select value={grantRole} onValueChange={(v) => setGrantRole(v ?? 'viewer')}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Role" /></SelectTrigger>
                 <SelectContent>
                   {ROLES.map((r) => (<SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>))}

@@ -74,11 +74,9 @@ export function CreateOrgDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Organization
-        </Button>
+      <DialogTrigger render={<Button className="gap-2" />}>
+        <Plus className="h-4 w-4" />
+        Create Organization
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -104,7 +102,7 @@ export function CreateOrgDialog() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Currency</Label>
-              <Select value={currency} onValueChange={setCurrency}>
+              <Select value={currency} onValueChange={(v) => setCurrency(v ?? 'USD')}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {CURRENCIES.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
@@ -113,7 +111,7 @@ export function CreateOrgDialog() {
             </div>
             <div className="space-y-2">
               <Label>Timezone</Label>
-              <Select value={timezone} onValueChange={setTimezone}>
+              <Select value={timezone} onValueChange={(v) => setTimezone(v ?? 'UTC')}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {TIMEZONES.map((tz) => (<SelectItem key={tz} value={tz}>{tz}</SelectItem>))}

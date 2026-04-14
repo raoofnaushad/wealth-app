@@ -111,14 +111,14 @@ export function OrgDetailPage() {
             <div className="space-y-2"><Label>Website</Label><Input value={editWebsite} onChange={(e) => setEditWebsite(e.target.value)} /></div>
             <div className="space-y-2">
               <Label>Currency</Label>
-              <Select value={editCurrency} onValueChange={setEditCurrency}>
+              <Select value={editCurrency} onValueChange={(v) => setEditCurrency(v ?? 'USD')}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{CURRENCIES.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>Timezone</Label>
-              <Select value={editTimezone} onValueChange={setEditTimezone}>
+              <Select value={editTimezone} onValueChange={(v) => setEditTimezone(v ?? 'UTC')}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{TIMEZONES.map((tz) => (<SelectItem key={tz} value={tz}>{tz}</SelectItem>))}</SelectContent>
               </Select>

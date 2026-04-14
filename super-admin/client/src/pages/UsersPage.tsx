@@ -48,7 +48,7 @@ export function UsersPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search by name or email…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? 'all')}>
           <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
@@ -57,7 +57,7 @@ export function UsersPage() {
             <SelectItem value="suspended">Suspended</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={orgFilter} onValueChange={setOrgFilter}>
+        <Select value={orgFilter} onValueChange={(v) => setOrgFilter(v ?? 'all')}>
           <SelectTrigger className="w-48"><SelectValue placeholder="Organization" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Organizations</SelectItem>

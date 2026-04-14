@@ -29,14 +29,14 @@ export function AuditLogPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Audit Logs</h1>
       <div className="flex items-center gap-4">
-        <Select value={actionFilter} onValueChange={setActionFilter}>
+        <Select value={actionFilter} onValueChange={(v) => setActionFilter(v ?? 'all')}>
           <SelectTrigger className="w-56"><SelectValue placeholder="Action" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Actions</SelectItem>
             {ACTION_TYPES.map((a) => (<SelectItem key={a} value={a}>{a}</SelectItem>))}
           </SelectContent>
         </Select>
-        <Select value={resourceFilter} onValueChange={setResourceFilter}>
+        <Select value={resourceFilter} onValueChange={(v) => setResourceFilter(v ?? 'all')}>
           <SelectTrigger className="w-44"><SelectValue placeholder="Resource Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Resources</SelectItem>
