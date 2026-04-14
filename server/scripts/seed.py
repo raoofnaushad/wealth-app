@@ -54,6 +54,8 @@ async def seed():
 
         # --- Clean existing data (in reverse FK order) ---
         # Deals tables
+        await db.execute(text("DELETE FROM deals.news_opportunity_links"))
+        await db.execute(text("DELETE FROM deals.news_items"))
         await db.execute(text("DELETE FROM deals.opportunities WHERE tenant_id = :id"), {"id": str(ORG_ID)})
         await db.execute(text("DELETE FROM deals.asset_managers WHERE tenant_id = :id"), {"id": str(ORG_ID)})
         await db.execute(text("DELETE FROM deals.mandates WHERE tenant_id = :id"), {"id": str(ORG_ID)})
@@ -564,6 +566,54 @@ async def seed():
                 {"tenant_id": str(ORG_ID), **opp},
             )
 
+        # --- News Items ---
+        news_items = [
+            {
+                "id": str(uuid.uuid4()),
+                "headline": "Biotech VC Fundraising Hits Record $12B in Q1 2026",
+                "summary": "Venture capital investments in biotechnology reached a record $12 billion in Q1 2026, driven by breakthrough gene therapy platforms and AI-driven drug discovery. Abingworth led several high-profile rounds, reinforcing its position as a top-tier life sciences investor.",
+                "category": "sector",
+                "source_url": "https://example.com/news/biotech-vc-record-q1-2026",
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "headline": "Blackstone Closes Record $30B Real Estate Fund",
+                "summary": "Blackstone Real Estate Partners X reached its final close at $30.4 billion, making it the largest real estate fund ever raised. The fund will target logistics, data centers, and residential assets across global markets.",
+                "category": "asset_manager",
+                "source_url": "https://example.com/news/blackstone-brep-x-close",
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "headline": "Middle East Sovereign Wealth Funds Increase Alternative Allocations",
+                "summary": "Gulf sovereign wealth funds have increased their allocations to alternative investments to approximately 35% of total AUM, with private equity and infrastructure leading the shift as funds seek diversification beyond traditional hydrocarbon-linked assets.",
+                "category": "market",
+                "source_url": "https://example.com/news/gulf-swf-alternatives-2026",
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "headline": "SEC Proposes New Private Fund Disclosure Requirements",
+                "summary": "The SEC has proposed enhanced disclosure requirements for private fund advisors, including quarterly fee and performance reporting, preferential treatment side letter transparency, and annual audit mandates for funds exceeding $500 million in AUM.",
+                "category": "regulatory",
+                "source_url": "https://example.com/news/sec-private-fund-disclosure-2026",
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "headline": "Global PE Deal Activity Rebounds in Q1 2026",
+                "summary": "Global private equity deal volume increased 23% year-over-year in Q1 2026, signaling a broad recovery in buyout and growth equity activity as financing conditions improved and valuation gaps between buyers and sellers narrowed.",
+                "category": "market",
+                "source_url": "https://example.com/news/global-pe-rebound-q1-2026",
+            },
+        ]
+
+        for news in news_items:
+            await db.execute(
+                text("""
+                    INSERT INTO deals.news_items (id, tenant_id, headline, summary, category, source_url, created_at, updated_at)
+                    VALUES (:id, :tenant_id, :headline, :summary, :category, :source_url, NOW(), NOW())
+                """),
+                {"tenant_id": str(ORG_ID), **news},
+            )
+
         await db.execute(text("SET session_replication_role = 'origin'"))
         await db.commit()
 
@@ -572,7 +622,7 @@ async def seed():
     print(f"  Organization: Watar Partners ({ORG_ID})")
     print(f"  Users: 5 (login with raoof@watar.com / password123)")
     print(f"  Invitations: 2 pending")
-    print(f"  Deals: 4 investment types, 20 document templates, 2 mandates, 3 asset managers, 6 opportunities")
+    print(f"  Deals: 4 investment types, 20 document templates, 2 mandates, 3 asset managers, 6 opportunities, 5 news items")
 
 
 if __name__ == "__main__":

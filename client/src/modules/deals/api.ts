@@ -6,6 +6,21 @@ import type {
   MandateStatus,
   Opportunity,
   PipelineStatus,
+  AssetManager,
+  NewsItem,
+  DashboardSummary,
+  Document,
+  SourceFile,
+  DocumentReview,
+  DocumentShare,
+  EmailAccount,
+  SyncedEmail,
+  GoogleDriveAccount,
+  DriveFolder,
+  GoogleDriveImportJob,
+  TeamMember,
+  ApprovalRequest,
+  ApprovalStage,
 } from './types'
 
 export const dealsApi = {
@@ -52,4 +67,128 @@ export const dealsApi = {
   updateOpportunity: (id: string, data: Partial<Opportunity>) =>
     api.put<Opportunity>(`/deals/opportunities/${id}`, data),
   deleteOpportunity: (id: string) => api.delete<void>(`/deals/opportunities/${id}`),
+
+  // Asset Managers
+  listAssetManagers: (type?: string) => {
+    const params = type ? `?type=${type}` : ''
+    return api.get<AssetManager[]>(`/deals/asset-managers${params}`)
+  },
+  getAssetManager: (id: string) => api.get<AssetManager>(`/deals/asset-managers/${id}`),
+  createAssetManager: (data: { name: string; type?: string; location?: string; description?: string; fundInfo?: Record<string, string>; firmInfo?: Record<string, string>; strategy?: Record<string, string> }) =>
+    api.post<AssetManager>('/deals/asset-managers', data),
+  updateAssetManager: (id: string, data: Partial<AssetManager>) =>
+    api.put<AssetManager>(`/deals/asset-managers/${id}`, data),
+  deleteAssetManager: (id: string) => api.delete<void>(`/deals/asset-managers/${id}`),
+
+  // News
+  listNews: (category?: string) => {
+    const params = category ? `?category=${category}` : ''
+    return api.get<NewsItem[]>(`/deals/news${params}`)
+  },
+
+  // Dashboard
+  getDashboardSummary: () => api.get<DashboardSummary>('/deals/dashboard/summary'),
+
+  // Documents
+  listDocuments: (opportunityId: string) =>
+    api.get<Document[]>(`/deals/opportunities/${opportunityId}/documents`),
+  createDocument: (opportunityId: string, data: { name: string; documentType: string; templateId?: string; content?: string }) =>
+    api.post<Document>(`/deals/opportunities/${opportunityId}/documents`, data),
+  getDocument: (opportunityId: string, docId: string) =>
+    api.get<Document>(`/deals/opportunities/${opportunityId}/documents/${docId}`),
+  updateDocument: (opportunityId: string, docId: string, data: { name?: string; content?: string; status?: string }) =>
+    api.put<Document>(`/deals/opportunities/${opportunityId}/documents/${docId}`, data),
+  deleteDocument: (opportunityId: string, docId: string) =>
+    api.delete<void>(`/deals/opportunities/${opportunityId}/documents/${docId}`),
+
+  // Source Files
+  listSourceFiles: (opportunityId: string) =>
+    api.get<SourceFile[]>(`/deals/opportunities/${opportunityId}/files`),
+  uploadSourceFile: async (opportunityId: string, file: File): Promise<SourceFile> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`/api/deals/opportunities/${opportunityId}/files`, {
+      method: 'POST',
+      body: formData,
+    })
+    if (!res.ok) throw new Error('Upload failed')
+    return res.json()
+  },
+
+  // Team Members
+  listTeamMembers: () => api.get<TeamMember[]>('/deals/team-members'),
+
+  // Reviews
+  listReviews: (filters?: { reviewerId?: string; requestedBy?: string; status?: string }) => {
+    const params = new URLSearchParams()
+    if (filters?.reviewerId) params.set('reviewerId', filters.reviewerId)
+    if (filters?.requestedBy) params.set('requestedBy', filters.requestedBy)
+    if (filters?.status) params.set('status', filters.status)
+    const qs = params.toString()
+    return api.get<DocumentReview[]>(`/deals/reviews${qs ? `?${qs}` : ''}`)
+  },
+  createReview: (data: { reviewerId: string; documentIds: string[] }) =>
+    api.post<DocumentReview>('/deals/reviews', data),
+  updateReview: (reviewId: string, data: { status: string; rationale?: string }) =>
+    api.put<DocumentReview>(`/deals/reviews/${reviewId}`, data),
+
+  // Approvals (opportunity-level)
+  listApprovals: (opportunityId: string) =>
+    api.get<ApprovalRequest[]>(`/deals/opportunities/${opportunityId}/approvals`),
+  submitForApproval: (opportunityId: string, data: {
+    stage: ApprovalStage
+    reviewerIds: string[]
+    documentIds: string[]
+  }) =>
+    api.post<ApprovalRequest[]>(`/deals/opportunities/${opportunityId}/approvals`, data),
+  updateApproval: (opportunityId: string, approvalId: string, data: {
+    status: string
+    rationale?: string
+  }) =>
+    api.put<ApprovalRequest>(`/deals/opportunities/${opportunityId}/approvals/${approvalId}`, data),
+
+  // Shares
+  listShares: (docId: string) => api.get<DocumentShare[]>(`/deals/documents/${docId}/shares`),
+  shareDocument: (docId: string, data: { sharedWith: string[]; permission?: string }) =>
+    api.post<DocumentShare[]>(`/deals/documents/${docId}/share`, data),
+  removeShare: (docId: string, shareId: string) =>
+    api.delete<void>(`/deals/documents/${docId}/shares/${shareId}`),
+
+  // Email Accounts
+  listEmailAccounts: () => api.get<EmailAccount[]>('/deals/email/accounts'),
+  connectEmailAccount: (data: { provider?: string; emailAddress: string }) =>
+    api.post<EmailAccount>('/deals/email/accounts', data),
+  disconnectEmailAccount: (id: string) => api.delete<void>(`/deals/email/accounts/${id}`),
+  triggerEmailSync: (id: string) => api.post<EmailAccount>(`/deals/email/accounts/${id}/sync`, {}),
+
+  // Synced Emails
+  listEmails: (filters?: { accountId?: string; importStatus?: string; hasAttachments?: boolean; search?: string }) => {
+    const params = new URLSearchParams()
+    if (filters?.accountId) params.set('accountId', filters.accountId)
+    if (filters?.importStatus) params.set('importStatus', filters.importStatus)
+    if (filters?.hasAttachments !== undefined) params.set('hasAttachments', String(filters.hasAttachments))
+    if (filters?.search) params.set('search', filters.search)
+    const qs = params.toString()
+    return api.get<SyncedEmail[]>(`/deals/emails${qs ? `?${qs}` : ''}`)
+  },
+  getEmail: (id: string) => api.get<SyncedEmail>(`/deals/emails/${id}`),
+  importEmail: (id: string, data: { investmentTypeId: string }) =>
+    api.post<Opportunity>(`/deals/emails/${id}/import`, data),
+  ignoreEmail: (id: string) => api.put<void>(`/deals/emails/${id}/ignore`, {}),
+
+  // Google Drive
+  listGoogleDriveAccounts: () => api.get<GoogleDriveAccount[]>('/deals/integrations/google-drive'),
+  connectGoogleDrive: (data: { emailAddress?: string }) =>
+    api.post<GoogleDriveAccount>('/deals/integrations/google-drive', data),
+  disconnectGoogleDrive: (id: string) =>
+    api.delete<void>(`/deals/integrations/google-drive/${id}`),
+  browseGoogleDrive: (accountId: string, parentFolderId?: string) => {
+    const params = new URLSearchParams({ accountId })
+    if (parentFolderId) params.set('parentFolderId', parentFolderId)
+    return api.get<{ folders: DriveFolder[] }>(`/deals/integrations/google-drive/browse?${params}`)
+  },
+  startGoogleDriveImport: (accountId: string, data: { folderIds: string[] }) =>
+    api.post<GoogleDriveImportJob>(`/deals/integrations/google-drive/import?accountId=${accountId}`, data),
+  getImportJob: (jobId: string) =>
+    api.get<GoogleDriveImportJob>(`/deals/integrations/google-drive/import/${jobId}`),
 }

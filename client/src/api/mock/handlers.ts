@@ -11,10 +11,47 @@ import {
   MOCK_USERS,
   MOCK_INVITATIONS,
 } from './data/admin'
+import {
+  MOCK_INVESTMENT_TYPES,
+  MOCK_DOCUMENT_TEMPLATES,
+  MOCK_MANDATES,
+  MOCK_ASSET_MANAGERS,
+  MOCK_OPPORTUNITIES,
+  MOCK_NEWS_ITEMS,
+  MOCK_DASHBOARD_SUMMARY,
+  MOCK_DOCUMENTS,
+  MOCK_REVIEWS,
+  MOCK_SHARES,
+  MOCK_EMAIL_ACCOUNTS,
+  MOCK_SYNCED_EMAILS,
+  MOCK_GOOGLE_DRIVE_ACCOUNTS,
+  MOCK_DRIVE_FOLDERS,
+  MOCK_SOURCE_FILES,
+  MOCK_TEAM_MEMBERS,
+  MOCK_APPROVALS,
+} from './data/deals'
 import type { OrgProfile, OrgBranding, OrgPreferences, InviteUserRequest, ModuleRoleAssignment } from '@/modules/admin/types'
+import type { InvestmentType, DocumentTemplate, Mandate, Opportunity, AssetManager, EmailAccount, SyncedEmail, GoogleDriveAccount, GoogleDriveImportJob } from '@/modules/deals/types'
+import type { WorkspaceDocument, DocumentReview, DocumentShare, MockApprovalRequest } from './data/deals'
 
 const dynamicRuns = new Map<string, AgentRunResponse>()
 const runTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+// Deals mutable state
+const investmentTypes = [...MOCK_INVESTMENT_TYPES]
+const documentTemplates = [...MOCK_DOCUMENT_TEMPLATES]
+const mandates = [...MOCK_MANDATES]
+const assetManagers = [...MOCK_ASSET_MANAGERS]
+const opportunities = [...MOCK_OPPORTUNITIES]
+const newsItems = [...MOCK_NEWS_ITEMS]
+const dashboardSummary = { ...MOCK_DASHBOARD_SUMMARY }
+const documents = [...MOCK_DOCUMENTS]
+const reviews = [...MOCK_REVIEWS]
+const shares = [...MOCK_SHARES]
+const approvals = [...MOCK_APPROVALS]
+const emailAccounts = [...MOCK_EMAIL_ACCOUNTS]
+const syncedEmails = [...MOCK_SYNCED_EMAILS]
+const googleDriveAccounts = [...MOCK_GOOGLE_DRIVE_ACCOUNTS]
 
 // Admin mutable state
 const orgProfile = { ...MOCK_ORG_PROFILE }
@@ -388,5 +425,748 @@ export const handlers = [
   http.put('/api/account/password', async () => {
     await delay(500)
     return HttpResponse.json({ success: true })
+  }),
+
+  // ── Deals: Investment Types ─────────────────────────────────────────
+
+  http.get('/api/deals/settings/investment-types', async () => {
+    await delay(300)
+    return HttpResponse.json(investmentTypes)
+  }),
+
+  http.get('/api/deals/settings/investment-types/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const item = investmentTypes.find(t => t.id === id)
+    if (!item) return HttpResponse.json({ error: 'Investment type not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  http.post('/api/deals/settings/investment-types', async ({ request }) => {
+    await delay(400)
+    const body = await request.json() as Partial<InvestmentType>
+    const now = new Date().toISOString()
+    const newItem: InvestmentType = {
+      id: `invtype-${Date.now().toString(36)}`,
+      name: body.name || 'Untitled',
+      slug: body.slug || body.name?.toLowerCase().replace(/\s+/g, '-') || 'untitled',
+      isSystem: false,
+      sortOrder: body.sortOrder ?? investmentTypes.length + 1,
+      snapshotConfig: body.snapshotConfig || { sections: [] },
+      createdAt: now,
+      updatedAt: now,
+    }
+    investmentTypes.push(newItem)
+    return HttpResponse.json(newItem, { status: 201 })
+  }),
+
+  http.put('/api/deals/settings/investment-types/:id', async ({ params, request }) => {
+    await delay(400)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<InvestmentType>
+    const idx = investmentTypes.findIndex(t => t.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Investment type not found' }, { status: 404 })
+    investmentTypes[idx] = { ...investmentTypes[idx], ...body, updatedAt: new Date().toISOString() }
+    return HttpResponse.json(investmentTypes[idx])
+  }),
+
+  http.delete('/api/deals/settings/investment-types/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const idx = investmentTypes.findIndex(t => t.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Investment type not found' }, { status: 404 })
+    investmentTypes.splice(idx, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ── Deals: Document Templates ───────────────────────────────────────
+
+  http.get('/api/deals/settings/templates', async ({ request }) => {
+    await delay(300)
+    const url = new URL(request.url)
+    const investmentTypeId = url.searchParams.get('investmentTypeId')
+    let result = documentTemplates
+    if (investmentTypeId) {
+      result = result.filter(t => t.investmentTypeId === investmentTypeId)
+    }
+    return HttpResponse.json(result)
+  }),
+
+  http.get('/api/deals/settings/templates/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const item = documentTemplates.find(t => t.id === id)
+    if (!item) return HttpResponse.json({ error: 'Template not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  http.put('/api/deals/settings/templates/:id', async ({ params, request }) => {
+    await delay(400)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<DocumentTemplate>
+    const idx = documentTemplates.findIndex(t => t.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Template not found' }, { status: 404 })
+    documentTemplates[idx] = { ...documentTemplates[idx], ...body, updatedAt: new Date().toISOString() }
+    return HttpResponse.json(documentTemplates[idx])
+  }),
+
+  // ── Deals: Mandates ─────────────────────────────────────────────────
+
+  http.get('/api/deals/mandates', async ({ request }) => {
+    await delay(300)
+    const url = new URL(request.url)
+    const status = url.searchParams.get('status')
+    let result = mandates
+    if (status) {
+      result = result.filter(m => m.status === status)
+    }
+    return HttpResponse.json(result)
+  }),
+
+  http.post('/api/deals/mandates', async ({ request }) => {
+    await delay(400)
+    const body = await request.json() as Partial<Mandate>
+    const now = new Date().toISOString()
+    const newItem: Mandate = {
+      id: `mandate-${Date.now().toString(36)}`,
+      name: body.name || 'Untitled Mandate',
+      status: body.status || 'draft',
+      targetAllocation: body.targetAllocation ?? null,
+      expectedReturn: body.expectedReturn || '',
+      timeHorizon: body.timeHorizon || '',
+      investmentTypes: body.investmentTypes || [],
+      assetAllocation: body.assetAllocation ?? null,
+      targetSectors: body.targetSectors || [],
+      geographicFocus: body.geographicFocus || [],
+      investmentCriteria: body.investmentCriteria || '',
+      investmentConstraints: body.investmentConstraints || '',
+      investmentStrategy: body.investmentStrategy || '',
+      createdBy: 'user-raoof',
+      createdAt: now,
+      updatedAt: now,
+    }
+    mandates.push(newItem)
+    return HttpResponse.json(newItem, { status: 201 })
+  }),
+
+  http.get('/api/deals/mandates/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const item = mandates.find(m => m.id === id)
+    if (!item) return HttpResponse.json({ error: 'Mandate not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  http.put('/api/deals/mandates/:id', async ({ params, request }) => {
+    await delay(400)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<Mandate>
+    const idx = mandates.findIndex(m => m.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Mandate not found' }, { status: 404 })
+    mandates[idx] = { ...mandates[idx], ...body, updatedAt: new Date().toISOString() }
+    return HttpResponse.json(mandates[idx])
+  }),
+
+  http.delete('/api/deals/mandates/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const idx = mandates.findIndex(m => m.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Mandate not found' }, { status: 404 })
+    mandates.splice(idx, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ── Deals: Opportunities ────────────────────────────────────────────
+
+  http.get('/api/deals/opportunities', async ({ request }) => {
+    await delay(300)
+    const url = new URL(request.url)
+    const pipelineStatus = url.searchParams.get('pipelineStatus')
+    const assignedTo = url.searchParams.get('assignedTo')
+    let result = opportunities
+    if (pipelineStatus) {
+      result = result.filter(o => o.pipelineStatus === pipelineStatus)
+    }
+    if (assignedTo) {
+      result = result.filter(o => o.assignedTo === assignedTo)
+    }
+    return HttpResponse.json(result)
+  }),
+
+  http.post('/api/deals/opportunities', async ({ request }) => {
+    await delay(400)
+    const body = await request.json() as Partial<Opportunity>
+    const now = new Date().toISOString()
+    const newItem: Opportunity = {
+      id: `opp-${Date.now().toString(36)}`,
+      name: body.name || 'Untitled Opportunity',
+      investmentTypeId: body.investmentTypeId || '',
+      investmentTypeName: body.investmentTypeName || '',
+      pipelineStatus: body.pipelineStatus || 'new',
+      assetManagerId: body.assetManagerId || '',
+      assetManagerName: body.assetManagerName || '',
+      assignedTo: body.assignedTo || 'user-raoof',
+      snapshotData: body.snapshotData || {},
+      snapshotCitations: body.snapshotCitations || {},
+      sourceType: body.sourceType || 'manual',
+      mandateFits: body.mandateFits || [],
+      approvalStage: body.approvalStage || 'new',
+      createdBy: 'user-raoof',
+      createdAt: now,
+      updatedAt: now,
+    }
+    opportunities.push(newItem)
+    return HttpResponse.json(newItem, { status: 201 })
+  }),
+
+  http.get('/api/deals/opportunities/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const item = opportunities.find(o => o.id === id)
+    if (!item) return HttpResponse.json({ error: 'Opportunity not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  http.put('/api/deals/opportunities/:id', async ({ params, request }) => {
+    await delay(400)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<Opportunity>
+    const idx = opportunities.findIndex(o => o.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Opportunity not found' }, { status: 404 })
+    opportunities[idx] = { ...opportunities[idx], ...body, updatedAt: new Date().toISOString() }
+    return HttpResponse.json(opportunities[idx])
+  }),
+
+  http.delete('/api/deals/opportunities/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const idx = opportunities.findIndex(o => o.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Opportunity not found' }, { status: 404 })
+    opportunities.splice(idx, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ── Deals: Asset Managers ───────────────────────────────────────────
+
+  http.get('/api/deals/asset-managers', async ({ request }) => {
+    await delay(300)
+    const url = new URL(request.url)
+    const type = url.searchParams.get('type')
+    let result = assetManagers
+    if (type) {
+      result = result.filter(am => am.type === type)
+    }
+    return HttpResponse.json(result)
+  }),
+
+  http.post('/api/deals/asset-managers', async ({ request }) => {
+    await delay(400)
+    const body = await request.json() as Partial<AssetManager>
+    const now = new Date().toISOString()
+    const newItem: AssetManager = {
+      id: `am-${Date.now().toString(36)}`,
+      name: body.name || 'Untitled Manager',
+      type: body.type ?? null,
+      location: body.location ?? null,
+      description: body.description ?? null,
+      fundInfo: body.fundInfo || {},
+      firmInfo: body.firmInfo || {},
+      strategy: body.strategy || {},
+      characteristics: body.characteristics || {},
+      createdByType: 'manual',
+      createdAt: now,
+      updatedAt: now,
+    }
+    assetManagers.push(newItem)
+    return HttpResponse.json(newItem, { status: 201 })
+  }),
+
+  http.get('/api/deals/asset-managers/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const item = assetManagers.find(am => am.id === id)
+    if (!item) return HttpResponse.json({ error: 'Asset manager not found' }, { status: 404 })
+    return HttpResponse.json(item)
+  }),
+
+  http.put('/api/deals/asset-managers/:id', async ({ params, request }) => {
+    await delay(400)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<AssetManager>
+    const idx = assetManagers.findIndex(am => am.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Asset manager not found' }, { status: 404 })
+    assetManagers[idx] = { ...assetManagers[idx], ...body, updatedAt: new Date().toISOString() }
+    return HttpResponse.json(assetManagers[idx])
+  }),
+
+  http.delete('/api/deals/asset-managers/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const idx = assetManagers.findIndex(am => am.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Asset manager not found' }, { status: 404 })
+    assetManagers.splice(idx, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ── Deals: News ─────────────────────────────────────────────────────
+
+  http.get('/api/deals/news', async ({ request }) => {
+    await delay(300)
+    const url = new URL(request.url)
+    const category = url.searchParams.get('category')
+    let result = newsItems
+    if (category) {
+      result = result.filter(n => n.category === category)
+    }
+    return HttpResponse.json(result)
+  }),
+
+  // ── Deals: Dashboard ────────────────────────────────────────────────
+
+  http.get('/api/deals/dashboard/summary', async () => {
+    await delay(300)
+    return HttpResponse.json(dashboardSummary)
+  }),
+
+  // ── Deals: Workspace Documents ──────────────────────────────────────
+
+  http.get('/api/deals/opportunities/:oppId/documents', async ({ params }) => {
+    await delay(300)
+    const { oppId } = params as { oppId: string }
+    const result = documents.filter(d => d.opportunityId === oppId)
+    return HttpResponse.json(result)
+  }),
+
+  http.post('/api/deals/opportunities/:oppId/documents', async ({ params, request }) => {
+    await delay(400)
+    const { oppId } = params as { oppId: string }
+    const body = await request.json() as Partial<WorkspaceDocument>
+    const now = new Date().toISOString()
+    const docName = (body as Record<string, unknown>).name as string || body.title || 'Untitled Document'
+    const newDoc: WorkspaceDocument = {
+      id: `doc-${Date.now().toString(36)}`,
+      opportunityId: oppId as string,
+      templateId: body.templateId || null,
+      templateName: body.templateName || '',
+      name: docName,
+      title: docName,
+      documentType: (body as Record<string, unknown>).documentType as string || 'custom',
+      content: body.content || '',
+      version: 1,
+      status: 'draft',
+      createdBy: 'user-raoof',
+      createdAt: now,
+      updatedAt: now,
+    }
+    documents.push(newDoc)
+    return HttpResponse.json(newDoc, { status: 201 })
+  }),
+
+  http.get('/api/deals/opportunities/:oppId/documents/:docId', async ({ params }) => {
+    await delay(300)
+    const { oppId, docId } = params as { oppId: string; docId: string }
+    const doc = documents.find(d => d.id === docId && d.opportunityId === oppId)
+    if (!doc) return HttpResponse.json({ error: 'Document not found' }, { status: 404 })
+    return HttpResponse.json(doc)
+  }),
+
+  http.put('/api/deals/opportunities/:oppId/documents/:docId', async ({ params, request }) => {
+    await delay(400)
+    const { oppId, docId } = params as { oppId: string; docId: string }
+    const body = await request.json() as Partial<WorkspaceDocument>
+    const idx = documents.findIndex(d => d.id === docId && d.opportunityId === oppId)
+    if (idx === -1) return HttpResponse.json({ error: 'Document not found' }, { status: 404 })
+    documents[idx] = { ...documents[idx], ...body, updatedAt: new Date().toISOString() }
+    return HttpResponse.json(documents[idx])
+  }),
+
+  http.delete('/api/deals/opportunities/:oppId/documents/:docId', async ({ params }) => {
+    await delay(300)
+    const { oppId, docId } = params as { oppId: string; docId: string }
+    const idx = documents.findIndex(d => d.id === docId && d.opportunityId === oppId)
+    if (idx === -1) return HttpResponse.json({ error: 'Document not found' }, { status: 404 })
+    documents.splice(idx, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ── Deals: Reviews ──────────────────────────────────────────────────
+
+  http.get('/api/deals/reviews', async () => {
+    await delay(300)
+    return HttpResponse.json(reviews)
+  }),
+
+  http.post('/api/deals/reviews', async ({ request }) => {
+    await delay(400)
+    const body = await request.json() as { documentId: string; reviewerId: string }
+    const now = new Date().toISOString()
+    const newReview: DocumentReview = {
+      id: `review-${Date.now().toString(36)}`,
+      documentId: body.documentId,
+      reviewerId: body.reviewerId,
+      status: 'pending',
+      comments: null,
+      createdAt: now,
+      updatedAt: now,
+    }
+    reviews.push(newReview)
+    // Set the document status to in_review
+    const docIdx = documents.findIndex(d => d.id === body.documentId)
+    if (docIdx !== -1) {
+      documents[docIdx].status = 'in_review'
+      documents[docIdx].updatedAt = now
+    }
+    return HttpResponse.json(newReview, { status: 201 })
+  }),
+
+  http.put('/api/deals/reviews/:id', async ({ params, request }) => {
+    await delay(400)
+    const { id } = params as { id: string }
+    const body = await request.json() as { status: 'approved' | 'changes_requested'; comments?: string }
+    const idx = reviews.findIndex(r => r.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Review not found' }, { status: 404 })
+    const now = new Date().toISOString()
+    reviews[idx] = { ...reviews[idx], status: body.status, comments: body.comments ?? null, updatedAt: now }
+    // Update the document status accordingly
+    const docIdx = documents.findIndex(d => d.id === reviews[idx].documentId)
+    if (docIdx !== -1) {
+      documents[docIdx].status = body.status
+      documents[docIdx].updatedAt = now
+    }
+    return HttpResponse.json(reviews[idx])
+  }),
+
+  // ── Deals: Approvals (Opportunity-Level) ─────────────────────────────
+
+  http.get('/api/deals/opportunities/:oppId/approvals', async ({ params }) => {
+    await delay(300)
+    const { oppId } = params as { oppId: string }
+    const result = approvals.filter(a => a.opportunityId === oppId)
+    return HttpResponse.json(result)
+  }),
+
+  http.post('/api/deals/opportunities/:oppId/approvals', async ({ params, request }) => {
+    await delay(400)
+    const { oppId } = params as { oppId: string }
+    const body = await request.json() as {
+      stage: string
+      reviewerIds: string[]
+      documentIds: string[]
+    }
+    const now = new Date().toISOString()
+    const created: MockApprovalRequest[] = body.reviewerIds.map(reviewerId => {
+      const approval: MockApprovalRequest = {
+        id: `approval-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+        opportunityId: oppId as string,
+        stage: body.stage,
+        reviewerId,
+        requestedBy: 'user-raoof',
+        status: 'pending',
+        rationale: null,
+        documentIds: body.documentIds,
+        requestedAt: now,
+        reviewedAt: null,
+      }
+      approvals.push(approval)
+      return approval
+    })
+    return HttpResponse.json(created, { status: 201 })
+  }),
+
+  http.put('/api/deals/opportunities/:oppId/approvals/:approvalId', async ({ params, request }) => {
+    await delay(400)
+    const { approvalId } = params as { approvalId: string }
+    const body = await request.json() as { status: string; rationale?: string }
+    const idx = approvals.findIndex(a => a.id === approvalId)
+    if (idx === -1) return HttpResponse.json({ error: 'Not found' }, { status: 404 })
+    const now = new Date().toISOString()
+    approvals[idx] = {
+      ...approvals[idx],
+      status: body.status as 'approved' | 'changes_requested',
+      rationale: body.rationale ?? null,
+      reviewedAt: now,
+    }
+    // If approved, advance opportunity's approvalStage
+    if (body.status === 'approved') {
+      const oppIdx = opportunities.findIndex(o => o.id === approvals[idx].opportunityId)
+      if (oppIdx !== -1) {
+        const opp = opportunities[oppIdx] as unknown as Record<string, unknown>
+        const currentStage = opp.approvalStage as string
+        if (currentStage === 'pre_screening') {
+          opp.approvalStage = 'due_diligence'
+        } else if (currentStage === 'due_diligence') {
+          opp.approvalStage = 'ic_review'
+        } else if (currentStage === 'ic_review') {
+          opp.approvalStage = 'approved'
+        }
+      }
+    }
+    return HttpResponse.json(approvals[idx])
+  }),
+
+  // ── Deals: Shares ───────────────────────────────────────────────────
+
+  http.get('/api/deals/documents/:docId/shares', async ({ params }) => {
+    await delay(300)
+    const { docId } = params as { docId: string }
+    const result = shares.filter(s => s.documentId === docId)
+    return HttpResponse.json(result)
+  }),
+
+  http.post('/api/deals/documents/:docId/share', async ({ params, request }) => {
+    await delay(400)
+    const { docId } = params as { docId: string }
+    const body = await request.json() as { sharedWith: string; permission: 'view' | 'comment' | 'edit' }[]
+    const now = new Date().toISOString()
+    const newShares: DocumentShare[] = (Array.isArray(body) ? body : [body]).map(s => ({
+      id: `share-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
+      documentId: docId as string,
+      sharedWith: s.sharedWith,
+      permission: s.permission,
+      sharedBy: 'user-raoof',
+      createdAt: now,
+    }))
+    shares.push(...newShares)
+    return HttpResponse.json(newShares, { status: 201 })
+  }),
+
+  // ── Deals: Email Accounts ──────────────────────────────────────────
+
+  http.get('/api/deals/email/accounts', async () => {
+    await delay(300)
+    return HttpResponse.json(emailAccounts)
+  }),
+
+  http.post('/api/deals/email/accounts', async ({ request }) => {
+    await delay(400)
+    const body = await request.json() as { provider?: string; emailAddress: string }
+    const now = new Date().toISOString()
+    const newAccount: EmailAccount = {
+      id: `email-acc-${Date.now().toString(36)}`,
+      userId: 'user-raoof',
+      provider: body.provider || 'gmail',
+      emailAddress: body.emailAddress,
+      status: 'connected',
+      lastSyncedAt: null,
+      syncLabels: ['INBOX'],
+      createdAt: now,
+      updatedAt: now,
+    }
+    emailAccounts.push(newAccount)
+    return HttpResponse.json(newAccount, { status: 201 })
+  }),
+
+  http.delete('/api/deals/email/accounts/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const idx = emailAccounts.findIndex(a => a.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Email account not found' }, { status: 404 })
+    emailAccounts.splice(idx, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.post('/api/deals/email/accounts/:id/sync', async ({ params }) => {
+    await delay(500)
+    const { id } = params as { id: string }
+    const account = emailAccounts.find(a => a.id === id)
+    if (!account) return HttpResponse.json({ error: 'Email account not found' }, { status: 404 })
+    account.lastSyncedAt = new Date().toISOString()
+    account.updatedAt = new Date().toISOString()
+    return HttpResponse.json(account)
+  }),
+
+  // ── Deals: Synced Emails ───────────────────────────────────────────
+
+  http.get('/api/deals/emails', async ({ request }) => {
+    await delay(300)
+    const url = new URL(request.url)
+    const accountId = url.searchParams.get('accountId')
+    const importStatus = url.searchParams.get('importStatus')
+    const search = url.searchParams.get('search')
+    let result: SyncedEmail[] = syncedEmails
+    if (accountId) {
+      result = result.filter(e => e.emailAccountId === accountId)
+    }
+    if (importStatus) {
+      result = result.filter(e => e.importStatus === importStatus)
+    }
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter(e =>
+        (e.subject?.toLowerCase().includes(q)) ||
+        (e.fromName?.toLowerCase().includes(q)) ||
+        (e.fromAddress?.toLowerCase().includes(q))
+      )
+    }
+    return HttpResponse.json(result)
+  }),
+
+  http.get('/api/deals/emails/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const email = syncedEmails.find(e => e.id === id)
+    if (!email) return HttpResponse.json({ error: 'Email not found' }, { status: 404 })
+    return HttpResponse.json(email)
+  }),
+
+  http.post('/api/deals/emails/:id/import', async ({ params, request }) => {
+    await delay(500)
+    const { id } = params as { id: string }
+    const body = await request.json() as { investmentTypeId: string }
+    const emailIdx = syncedEmails.findIndex(e => e.id === id)
+    if (emailIdx === -1) return HttpResponse.json({ error: 'Email not found' }, { status: 404 })
+    const email = syncedEmails[emailIdx]
+    const investmentType = MOCK_INVESTMENT_TYPES.find(t => t.id === body.investmentTypeId)
+    const now = new Date().toISOString()
+    const newOpp: Opportunity = {
+      id: `opp-${Date.now().toString(36)}`,
+      name: email.subject || 'Imported Opportunity',
+      investmentTypeId: body.investmentTypeId,
+      investmentTypeName: investmentType?.name || '',
+      pipelineStatus: 'new',
+      assetManagerId: '',
+      assetManagerName: email.fromName || '',
+      assignedTo: 'user-raoof',
+      snapshotData: {},
+      snapshotCitations: {},
+      sourceType: 'email',
+      mandateFits: [],
+      approvalStage: 'new',
+      createdBy: 'user-raoof',
+      createdAt: now,
+      updatedAt: now,
+    }
+    opportunities.push(newOpp)
+    syncedEmails[emailIdx] = { ...email, importStatus: 'imported', opportunityId: newOpp.id }
+    return HttpResponse.json(newOpp, { status: 201 })
+  }),
+
+  http.put('/api/deals/emails/:id/ignore', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const idx = syncedEmails.findIndex(e => e.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Email not found' }, { status: 404 })
+    syncedEmails[idx] = { ...syncedEmails[idx], importStatus: 'ignored' }
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // ── Deals: Source Files ─────────────────────────────────────────────
+
+  http.get('/api/deals/opportunities/:oppId/files', async ({ params }) => {
+    await delay(300)
+    const { oppId } = params as { oppId: string }
+    const result = MOCK_SOURCE_FILES.filter(f => f.opportunityId === oppId)
+    return HttpResponse.json(result)
+  }),
+
+  http.post('/api/deals/opportunities/:oppId/files', async ({ params, request }) => {
+    await delay(500)
+    const { oppId } = params as { oppId: string }
+    const formData = await request.formData()
+    const file = formData.get('file') as File | null
+    if (!file) return HttpResponse.json({ error: 'No file provided' }, { status: 400 })
+
+    // Create a blob URL for the uploaded file so it can be viewed/downloaded
+    const blob = new Blob([await file.arrayBuffer()], { type: file.type })
+    const blobUrl = URL.createObjectURL(blob)
+
+    const newFile = {
+      id: `sf-${Date.now()}`,
+      opportunityId: oppId,
+      fileName: file.name,
+      fileUrl: blobUrl,
+      fileType: file.type || null,
+      fileSize: file.size,
+      processed: false,
+      sourceOrigin: 'upload',
+      createdAt: new Date().toISOString(),
+    }
+    MOCK_SOURCE_FILES.push(newFile as typeof MOCK_SOURCE_FILES[0])
+    return HttpResponse.json(newFile, { status: 201 })
+  }),
+
+  // ── Deals: Team Members ────────────────────────────────────────────
+
+  http.get('/api/deals/team-members', async () => {
+    await delay(300)
+    return HttpResponse.json(MOCK_TEAM_MEMBERS)
+  }),
+
+  // ── Deals: Google Drive ────────────────────────────────────────────
+
+  http.get('/api/deals/integrations/google-drive', async () => {
+    await delay(300)
+    return HttpResponse.json(googleDriveAccounts)
+  }),
+
+  http.post('/api/deals/integrations/google-drive', async ({ request }) => {
+    await delay(400)
+    const body = await request.json() as { emailAddress?: string }
+    const now = new Date().toISOString()
+    const newAccount: GoogleDriveAccount = {
+      id: `gdrive-acc-${Date.now().toString(36)}`,
+      userId: 'user-raoof',
+      emailAddress: body.emailAddress || null,
+      status: 'connected',
+      createdAt: now,
+      updatedAt: now,
+    }
+    googleDriveAccounts.push(newAccount)
+    return HttpResponse.json(newAccount, { status: 201 })
+  }),
+
+  http.delete('/api/deals/integrations/google-drive/:id', async ({ params }) => {
+    await delay(300)
+    const { id } = params as { id: string }
+    const idx = googleDriveAccounts.findIndex(a => a.id === id)
+    if (idx === -1) return HttpResponse.json({ error: 'Google Drive account not found' }, { status: 404 })
+    googleDriveAccounts.splice(idx, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get('/api/deals/integrations/google-drive/browse', async () => {
+    await delay(300)
+    return HttpResponse.json({ folders: MOCK_DRIVE_FOLDERS })
+  }),
+
+  http.post('/api/deals/integrations/google-drive/import', async ({ request }) => {
+    await delay(500)
+    const url = new URL(request.url)
+    const accountId = url.searchParams.get('accountId') || ''
+    const body = await request.json() as { folderIds: string[] }
+    const now = new Date().toISOString()
+    const job: GoogleDriveImportJob = {
+      id: `import-job-${Date.now().toString(36)}`,
+      accountId,
+      folderPaths: body.folderIds,
+      status: 'processing',
+      totalFiles: 12,
+      processedFiles: 0,
+      opportunitiesCreated: 0,
+      errorLog: null,
+      startedAt: now,
+      completedAt: null,
+      createdAt: now,
+    }
+    return HttpResponse.json(job, { status: 201 })
+  }),
+
+  http.get('/api/deals/integrations/google-drive/import/:jobId', async () => {
+    await delay(300)
+    const now = new Date().toISOString()
+    const job: GoogleDriveImportJob = {
+      id: 'import-job-mock',
+      accountId: 'gdrive-acc-1',
+      folderPaths: ['/Deal Documents 2026'],
+      status: 'completed',
+      totalFiles: 12,
+      processedFiles: 12,
+      opportunitiesCreated: 3,
+      errorLog: null,
+      startedAt: '2026-04-12T10:00:00Z',
+      completedAt: now,
+      createdAt: '2026-04-12T10:00:00Z',
+    }
+    return HttpResponse.json(job)
   }),
 ]

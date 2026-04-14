@@ -1,9 +1,11 @@
 import uuid
+from datetime import datetime
 
 from sqlalchemy import (
     ARRAY,
     UUID,
     Boolean,
+    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -11,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -135,3 +138,246 @@ class Opportunity(Base, TenantMixin, TimestampMixin):
 
     investment_type: Mapped["InvestmentType | None"] = relationship(lazy="selectin")
     asset_manager: Mapped["AssetManager | None"] = relationship(lazy="selectin")
+
+
+class NewsItem(Base, TenantMixin, TimestampMixin):
+    __tablename__ = "news_items"
+    __table_args__ = (
+        Index("ix_news_items_tenant", "tenant_id"),
+        {"schema": "deals"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    headline: Mapped[str] = mapped_column(String(500), nullable=False)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    full_content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    opportunity_links: Mapped[list["NewsOpportunityLink"]] = relationship(
+        back_populates="news_item", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class NewsOpportunityLink(Base):
+    __tablename__ = "news_opportunity_links"
+    __table_args__ = {"schema": "deals"}
+
+    news_item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("deals.news_items.id", ondelete="CASCADE"), primary_key=True)
+    opportunity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("deals.opportunities.id", ondelete="CASCADE"), primary_key=True)
+
+    news_item: Mapped["NewsItem"] = relationship(back_populates="opportunity_links")
+    opportunity: Mapped["Opportunity"] = relationship()
+
+
+class SourceFile(Base, TenantMixin, TimestampMixin):
+    __tablename__ = "source_files"
+    __table_args__ = (
+        Index("ix_source_files_opportunity", "opportunity_id"),
+        {"schema": "deals"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    opportunity_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("deals.opportunities.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    file_name: Mapped[str] = mapped_column(String(500), nullable=False)
+    file_url: Mapped[str] = mapped_column(Text, nullable=False)
+    file_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    vector_store_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    processed: Mapped[bool] = mapped_column(Boolean, server_default="false", nullable=False)
+    source_origin: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+
+class Document(Base, TenantMixin, TimestampMixin):
+    __tablename__ = "documents"
+    __table_args__ = (
+        Index("ix_documents_opportunity", "opportunity_id"),
+        {"schema": "deals"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    opportunity_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("deals.opportunities.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    template_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("deals.document_templates.id"),
+        nullable=True,
+    )
+    name: Mapped[str] = mapped_column(String(500), nullable=False)
+    document_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), server_default="draft", nullable=False)
+    version: Mapped[int] = mapped_column(Integer, server_default="1", nullable=False)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+
+
+class DocumentReview(Base, TenantMixin):
+    __tablename__ = "document_reviews"
+    __table_args__ = (
+        Index("ix_document_reviews_reviewer_status", "reviewer_id", "status"),
+        {"schema": "deals"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    reviewer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    requested_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), server_default="pending", nullable=False)
+    rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rationale_generated: Mapped[bool] = mapped_column(Boolean, server_default="false", nullable=False)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    items: Mapped[list["DocumentReviewItem"]] = relationship(
+        back_populates="review", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class DocumentReviewItem(Base):
+    __tablename__ = "document_review_items"
+    __table_args__ = (
+        UniqueConstraint("review_id", "document_id", name="uq_document_review_items_review_document"),
+        {"schema": "deals"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    review_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("deals.document_reviews.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("deals.documents.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    review: Mapped["DocumentReview"] = relationship(back_populates="items")
+    document: Mapped["Document"] = relationship()
+
+
+class DocumentShare(Base, TenantMixin):
+    __tablename__ = "document_shares"
+    __table_args__ = {"schema": "deals"}
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("deals.documents.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    shared_with: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    shared_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    permission: Mapped[str] = mapped_column(String(20), server_default="comment", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class EmailAccount(Base, TenantMixin, TimestampMixin):
+    __tablename__ = "email_accounts"
+    __table_args__ = {"schema": "deals"}
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    provider: Mapped[str] = mapped_column(String(20), server_default="gmail", nullable=False)
+    email_address: Mapped[str] = mapped_column(String(255), nullable=False)
+    access_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sync_labels: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), server_default="connected", nullable=False)
+
+
+class SyncedEmail(Base, TenantMixin):
+    __tablename__ = "emails"
+    __table_args__ = (
+        Index("ix_emails_tenant_account", "tenant_id", "email_account_id"),
+        Index("ix_emails_tenant_import_status", "tenant_id", "import_status"),
+        {"schema": "deals"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("deals.email_accounts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    gmail_message_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    from_address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    from_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    subject: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    body_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    body_html: Mapped[str | None] = mapped_column(Text, nullable=True)
+    received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    attachment_count: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
+    import_status: Mapped[str] = mapped_column(String(20), server_default="new", nullable=False)
+    opportunity_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    attachments: Mapped[list["EmailAttachment"]] = relationship(
+        back_populates="email", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class EmailAttachment(Base):
+    __tablename__ = "email_attachments"
+    __table_args__ = {"schema": "deals"}
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("deals.emails.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    file_name: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    file_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    file_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    email: Mapped["SyncedEmail"] = relationship(back_populates="attachments")
+
+
+class GoogleDriveAccount(Base, TenantMixin, TimestampMixin):
+    __tablename__ = "google_drive_accounts"
+    __table_args__ = {"schema": "deals"}
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    email_address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    access_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), server_default="connected", nullable=False)
+
+
+class GoogleDriveImportJob(Base, TenantMixin):
+    __tablename__ = "google_drive_import_jobs"
+    __table_args__ = (
+        Index("ix_google_drive_import_jobs_tenant_status", "tenant_id", "status"),
+        {"schema": "deals"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("deals.google_drive_accounts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    folder_paths: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), server_default="pending", nullable=False)
+    total_files: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
+    processed_files: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
+    opportunities_created: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
+    error_log: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

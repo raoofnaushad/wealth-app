@@ -161,11 +161,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {accessibleModules.length > 0 && (
           <>
             {!collapsed && (
-              <div className="px-2.5 pt-4 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="px-2.5 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Modules
               </div>
             )}
-            {collapsed && <div className="my-2 border-t border-border" />}
+            {collapsed && <div className="my-2 mx-2 border-t border-border" />}
             {accessibleModules.map(renderNavItem)}
           </>
         )}

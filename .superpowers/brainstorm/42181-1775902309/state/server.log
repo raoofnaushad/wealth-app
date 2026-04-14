@@ -1,6 +1,0 @@
-{"type":"server-started","port":52965,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:52965","screen_dir":"/Users/raoof/Documents/work/space/wealth-app/.superpowers/brainstorm/42181-1775902309/content","state_dir":"/Users/raoof/Documents/work/space/wealth-app/.superpowers/brainstorm/42181-1775902309/state"}
-{"type":"screen-added","file":"/Users/raoof/Documents/work/space/wealth-app/.superpowers/brainstorm/42181-1775902309/content/admin-architecture.html"}
-{"type":"screen-added","file":"/Users/raoof/Documents/work/space/wealth-app/.superpowers/brainstorm/42181-1775902309/content/navigation-strategy.html"}
-{"type":"screen-added","file":"/Users/raoof/Documents/work/space/wealth-app/.superpowers/brainstorm/42181-1775902309/content/final-design.html"}
-{"type":"screen-added","file":"/Users/raoof/Documents/work/space/wealth-app/.superpowers/brainstorm/42181-1775902309/content/waiting.html"}
-{"type":"server-stopped","reason":"idle timeout"}

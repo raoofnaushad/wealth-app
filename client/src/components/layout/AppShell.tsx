@@ -7,9 +7,11 @@ import { RightPanel } from './RightPanel'
 import { ModuleSwitcher } from './ModuleSwitcher'
 import { ChatPanel } from '@/components/chat/ChatPanel'
 import { useChatStore } from '@/store/useChatStore'
+import { useUIStore } from '@/store/useUIStore'
 
 export function AppShell() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const globalSidebarCollapsed = useUIStore((s) => s.globalSidebarCollapsed)
+  const toggleGlobalSidebar = useUIStore((s) => s.toggleGlobalSidebar)
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(true)
   const [moduleSwitcherOpen, setModuleSwitcherOpen] = useState(false)
   const chatOpen = useChatStore((s) => s.isOpen)
@@ -19,7 +21,7 @@ export function AppShell() {
       <div className="h-screen flex flex-col overflow-hidden bg-background">
         <TopNav onModuleSwitcherOpen={() => setModuleSwitcherOpen(true)} />
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+          <Sidebar collapsed={globalSidebarCollapsed} onToggle={toggleGlobalSidebar} />
           <main className="flex-1 min-w-0 overflow-y-auto">
             <Outlet />
           </main>
