@@ -28,6 +28,7 @@ import { AssetManagerDetailPage } from '@/modules/deals/pages/AssetManagerDetail
 import { OpportunityWorkspacePage } from '@/modules/deals/pages/OpportunityWorkspacePage'
 import { NewsPage } from '@/modules/deals/pages/NewsPage'
 import { EmailHubPage } from '@/modules/deals/pages/EmailHubPage'
+import { EventsTasksPage } from '@/modules/deals/pages/EventsTasksPage'
 import { CompanyProfilePage } from '@/modules/admin/pages/CompanyProfilePage'
 import { BrandingPage } from '@/modules/admin/pages/BrandingPage'
 import { UsersPage } from '@/modules/admin/pages/UsersPage'
@@ -102,6 +103,7 @@ function App() {
             <Route path="asset-managers/:assetManagerId" element={<AssetManagerDetailPage />} />
             <Route path="news" element={<NewsPage />} />
             <Route path="email" element={<EmailHubPage />} />
+            <Route path="events" element={<EventsTasksPage />} />
             <Route path="settings" element={<DealsSettingsPage />} />
           </Route>
 

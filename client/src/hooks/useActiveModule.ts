@@ -60,6 +60,7 @@ const MODULE_NAV_CONFIG: Record<string, ActiveModule> = {
       { label: 'Mandates', path: '/home/deals/mandates', icon: FileText },
       { label: 'Opportunities', path: '/home/deals/opportunities', icon: Target },
       { label: 'Email Hub', path: '/home/deals/email', icon: Mail },
+      { label: 'Events & Tasks', path: '/home/deals/events', icon: Calendar },
       { label: 'Asset Managers', path: '/home/deals/asset-managers', icon: Building2 },
       { label: 'News', path: '/home/deals/news', icon: Newspaper },
       { label: 'Settings', path: '/home/deals/settings', icon: Settings },

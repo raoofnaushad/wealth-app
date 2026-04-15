@@ -70,12 +70,12 @@
 - [x] `CommentsPanel` — threaded comments sidebar (1-level, keyed to section headings)
 - [x] Export button → PDF already working (skipped per user)
 
-### Phase 9 — Events & Tasks Page
-- [ ] New route `/deals/events` → `EventsTasksPage`
-- [ ] Events list (meeting / call / site-visit icons)
-- [ ] Task list (priority, due date, assignee)
-- [ ] Mini calendar widget
-- [ ] Google Calendar sync status indicator
+### ~~Phase 9 — Events & Tasks Page~~ ✅ DONE
+- [x] New route `/deals/events` → `EventsTasksPage`
+- [x] Events list (meeting / call / site-visit icons)
+- [x] Task list (priority, due date, assignee)
+- [x] Mini calendar widget
+- [x] Google Calendar sync status indicator
 
 ### Phase 10 — Notification Panel
 - [ ] `NotificationPanel` slide-in drawer
