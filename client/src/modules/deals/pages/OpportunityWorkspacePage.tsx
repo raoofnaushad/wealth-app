@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useDealsStore } from '../store'
 import { useUndoRedo } from '../components/workspace/useUndoRedo'
 import { useUIStore } from '@/store/useUIStore'
+import { Button } from '@/components/ui/button'
 import { WorkspaceHeader } from '../components/workspace/WorkspaceHeader'
 import { WorkspaceSidebar } from '../components/workspace/WorkspaceSidebar'
 import { WorkspaceContentTabs } from '../components/workspace/WorkspaceContentTabs'
@@ -13,6 +14,9 @@ import { CreateDocumentDialog } from '../components/workspace/CreateDocumentDial
 import { ValidationDialog } from '../components/workspace/ValidationDialog'
 import { ShareDialog } from '../components/workspace/ShareDialog'
 import { ReviewBanner } from '../components/workspace/ReviewBanner'
+import { NotesCanvas } from '../components/workspace/NotesCanvas'
+import { CopilotPanel } from '../components/workspace/CopilotPanel'
+import { CommentsPanel } from '../components/workspace/CommentsPanel'
 import type { WorkspaceTab, ApprovalStage } from '../types'
 import { dealsApi } from '../api'
 
@@ -27,6 +31,7 @@ export function OpportunityWorkspacePage() {
   const [showCreateDoc, setShowCreateDoc] = useState(false)
   const [showValidation, setShowValidation] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [rightPanel, setRightPanel] = useState<'none' | 'copilot' | 'comments'>('none')
 
   useEffect(() => {
     if (oppId) {
@@ -157,6 +162,27 @@ export function OpportunityWorkspacePage() {
         }}
       />
 
+      {/* Panel toggle buttons */}
+      <div className="flex items-center gap-1 border-b px-4 py-1.5 bg-muted/30">
+        <span className="text-xs text-muted-foreground mr-2">Panels:</span>
+        <Button
+          variant={rightPanel === 'copilot' ? 'default' : 'outline'}
+          size="sm"
+          className="h-6 px-2.5 text-xs gap-1"
+          onClick={() => setRightPanel(rightPanel === 'copilot' ? 'none' : 'copilot')}
+        >
+          Copilot
+        </Button>
+        <Button
+          variant={rightPanel === 'comments' ? 'default' : 'outline'}
+          size="sm"
+          className="h-6 px-2.5 text-xs gap-1"
+          onClick={() => setRightPanel(rightPanel === 'comments' ? 'none' : 'comments')}
+        >
+          Comments
+        </Button>
+      </div>
+
       {/* Body: Sidebar + Main Content — sidebar and tabs are sticky, only content scrolls */}
       <div className="flex-1 flex overflow-hidden">
         {/* Workspace sidebar — never scrolls (has its own internal ScrollArea) */}
@@ -199,9 +225,7 @@ export function OpportunityWorkspacePage() {
               />
             )}
             {activeTab?.type === 'note' && (
-              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                Canvas notes coming soon
-              </div>
+              <NotesCanvas />
             )}
             {activeTab?.type === 'source_file' && activeSourceFile && (
               <SourceFileViewer sourceFile={activeSourceFile} />
@@ -213,6 +237,18 @@ export function OpportunityWorkspacePage() {
             )}
           </div>
         </div>
+
+        {/* Right panel: Copilot or Comments */}
+        {rightPanel === 'copilot' && (
+          <div className="w-80 shrink-0">
+            <CopilotPanel opportunityName={opp.name} />
+          </div>
+        )}
+        {rightPanel === 'comments' && (
+          <div className="w-80 shrink-0">
+            <CommentsPanel opportunityId={opp.id} />
+          </div>
+        )}
       </div>
 
       {/* Dialogs */}

@@ -64,11 +64,11 @@
 - [x] Unignore action on ignored emails
 - [x] Confirm dialog before re-processing an email
 
-### Phase 8 — Workspace Enhancements
-- [ ] `NotesCanvas` — freeform sticky notes (SVG-based, no extra lib)
-- [ ] `CopilotPanel` — chat vs. autonomous agent mode toggle
-- [ ] `CommentsPanel` — threaded comments sidebar (1-level, keyed to section headings)
-- [ ] Export button → PDF (`window.print()`) + Word (`docx` package)
+### ~~Phase 8 — Workspace Enhancements~~ ✅ DONE
+- [x] `NotesCanvas` — freeform sticky notes (SVG-based, no extra lib)
+- [x] `CopilotPanel` — chat vs. autonomous agent mode toggle
+- [x] `CommentsPanel` — threaded comments sidebar (1-level, keyed to section headings)
+- [x] Export button → PDF already working (skipped per user)
 
 ### Phase 9 — Events & Tasks Page
 - [ ] New route `/deals/events` → `EventsTasksPage`
