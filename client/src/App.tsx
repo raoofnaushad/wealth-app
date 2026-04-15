@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import { useAuthStore } from '@/store/useAuthStore'
 import { AppShell } from '@/components/layout/AppShell'
 import { LoginPage } from '@/pages/LoginPage'
@@ -51,6 +52,7 @@ function GuestGuard({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
+  <>
     <BrowserRouter>
       <Routes>
         <Route
@@ -112,6 +114,8 @@ function App() {
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
     </BrowserRouter>
+    <Toaster richColors position="bottom-right" />
+  </>
   )
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { useDealsStore } from '../store'
 import { dealsApi } from '../api'
 import { EmailAccountList } from '../components/email/EmailAccountList'
@@ -31,8 +32,9 @@ export function EmailHubPage() {
       await dealsApi.triggerEmailSync(accountId)
       await fetchEmailAccounts()
       await fetchEmails()
+      toast.success('Email sync triggered successfully.')
     } catch {
-      // TODO: surface error
+      toast.error('Failed to sync email account. Please try again.')
     }
   }
 
@@ -41,7 +43,7 @@ export function EmailHubPage() {
       await dealsApi.disconnectEmailAccount(accountId)
       await fetchEmailAccounts()
     } catch {
-      // TODO: surface error
+      toast.error('Failed to disconnect email account.')
     }
   }
 
@@ -52,7 +54,19 @@ export function EmailHubPage() {
       await fetchEmails()
       selectEmail(null)
     } catch {
-      // TODO: surface error
+      toast.error('Failed to ignore email.')
+    }
+  }
+
+  async function handleUnignore() {
+    if (!selectedEmail) return
+    try {
+      await dealsApi.unignoreEmail(selectedEmail.id)
+      await fetchEmails()
+      selectEmail(null)
+      toast.success('Email restored to inbox.')
+    } catch {
+      toast.error('Failed to unignore email.')
     }
   }
 
@@ -67,7 +81,10 @@ export function EmailHubPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Email Hub</h1>
-        <ConnectGmailButton onConnected={fetchEmailAccounts} />
+        <ConnectGmailButton
+          onConnected={fetchEmailAccounts}
+          onError={() => toast.error('Failed to connect Gmail account. Please try again.')}
+        />
       </div>
 
       {/* Connected accounts */}
@@ -97,6 +114,7 @@ export function EmailHubPage() {
                 email={selectedEmail}
                 onImport={() => setImportingEmail(selectedEmail)}
                 onIgnore={handleIgnore}
+                onUnignore={handleUnignore}
                 onClose={() => selectEmail(null)}
               />
             </div>

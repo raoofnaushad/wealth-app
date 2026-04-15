@@ -5,9 +5,10 @@ import { dealsApi } from '../../api'
 
 interface ConnectGmailButtonProps {
   onConnected: () => void
+  onError?: () => void
 }
 
-export function ConnectGmailButton({ onConnected }: ConnectGmailButtonProps) {
+export function ConnectGmailButton({ onConnected, onError }: ConnectGmailButtonProps) {
   const [connecting, setConnecting] = useState(false)
 
   async function handleConnect() {
@@ -19,7 +20,7 @@ export function ConnectGmailButton({ onConnected }: ConnectGmailButtonProps) {
       })
       onConnected()
     } catch {
-      // TODO: surface error to user
+      onError?.()
     } finally {
       setConnecting(false)
     }

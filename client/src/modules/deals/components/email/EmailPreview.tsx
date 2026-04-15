@@ -1,13 +1,23 @@
+import { useState } from 'react'
 import { X, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import type { SyncedEmail } from '../../types'
 
 interface EmailPreviewProps {
   email: SyncedEmail
   onImport: () => void
   onIgnore: () => void
+  onUnignore: () => void
   onClose: () => void
 }
 
@@ -26,9 +36,10 @@ function formatDate(dateStr: string | null): string {
   })
 }
 
-export function EmailPreview({ email, onImport, onIgnore, onClose }: EmailPreviewProps) {
+export function EmailPreview({ email, onImport, onIgnore, onUnignore, onClose }: EmailPreviewProps) {
   const isImported = email.importStatus === 'imported'
   const isIgnored = email.importStatus === 'ignored'
+  const [showReprocessConfirm, setShowReprocessConfirm] = useState(false)
 
   return (
     <div className="flex h-full flex-col rounded-lg border bg-card">
@@ -104,11 +115,19 @@ export function EmailPreview({ email, onImport, onIgnore, onClose }: EmailPrevie
                 View opportunity
               </a>
             )}
+            <Button variant="outline" size="sm" onClick={() => setShowReprocessConfirm(true)}>
+              Re-process
+            </Button>
           </div>
         ) : isIgnored ? (
-          <Badge variant="secondary" className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-            Ignored
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+              Ignored
+            </Badge>
+            <Button variant="outline" size="sm" onClick={onUnignore}>
+              Unignore
+            </Button>
+          </div>
         ) : (
           <div className="flex items-center gap-2">
             <Button onClick={onImport}>
@@ -120,6 +139,28 @@ export function EmailPreview({ email, onImport, onIgnore, onClose }: EmailPrevie
           </div>
         )}
       </div>
+
+      {/* Re-process confirm dialog */}
+      {showReprocessConfirm && (
+        <Dialog open onOpenChange={(open) => { if (!open) setShowReprocessConfirm(false) }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Re-process Email?</DialogTitle>
+              <DialogDescription>
+                This email has already been imported as an opportunity. Re-processing will create a new opportunity from this email. The existing opportunity will not be affected.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowReprocessConfirm(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => { setShowReprocessConfirm(false); onImport() }}>
+                Re-process
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

@@ -59,10 +59,10 @@
 - [x] Fetch from `GET /deals/mandates/:id/matches`
 - [x] Ranked list with fit score + pipeline status
 
-### Phase 7 — Email Hub Fixes
-- [ ] Error toast on Gmail connect failure / processing error
-- [ ] Unignore action on ignored emails
-- [ ] Confirm dialog before re-processing an email
+### ~~Phase 7 — Email Hub Fixes~~ ✅ DONE
+- [x] Error toast on Gmail connect failure / processing error
+- [x] Unignore action on ignored emails
+- [x] Confirm dialog before re-processing an email
 
 ### Phase 8 — Workspace Enhancements
 - [ ] `NotesCanvas` — freeform sticky notes (SVG-based, no extra lib)
