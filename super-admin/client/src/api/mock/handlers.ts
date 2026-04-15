@@ -348,16 +348,16 @@ export const handlers = [
       return HttpResponse.json({ message: 'Organization not found' }, { status: 404 });
     }
 
-    const body = await request.json() as { modules: ModuleSlug[] };
+    const body = await request.json() as { enabledModules: ModuleSlug[] };
 
-    if (!Array.isArray(body.modules)) {
-      return HttpResponse.json({ message: 'modules must be an array' }, { status: 422 });
+    if (!Array.isArray(body.enabledModules)) {
+      return HttpResponse.json({ message: 'enabledModules must be an array' }, { status: 422 });
     }
 
     const previousModules = [...org.enabledModules];
     const updated: Organization = {
       ...org,
-      enabledModules: body.modules,
+      enabledModules: body.enabledModules,
       updatedAt: new Date().toISOString(),
     };
 
@@ -365,7 +365,7 @@ export const handlers = [
 
     addAuditLog('org.modules_updated', 'organization', id, org.name, {
       previousModules,
-      newModules: body.modules,
+      newModules: body.enabledModules,
     });
 
     return HttpResponse.json(updated);
