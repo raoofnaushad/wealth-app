@@ -39,7 +39,7 @@ const roleLabels: Record<string, string> = {
 export function ShareDialog({ documentId, documentName, onClose }: ShareDialogProps) {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(true)
-  const [selectedUsers, setSelectedUsers] = useState<Map<string, 'view' | 'comment' | 'edit'>>(new Map())
+  const [selectedUsers, setSelectedUsers] = useState<Map<string, 'read' | 'read_write'>>(new Map())
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -64,13 +64,13 @@ export function ShareDialog({ documentId, documentName, onClose }: ShareDialogPr
       if (next.has(memberId)) {
         next.delete(memberId)
       } else {
-        next.set(memberId, 'view')
+        next.set(memberId, 'read')
       }
       return next
     })
   }
 
-  function handlePermissionChange(memberId: string, permission: 'view' | 'comment' | 'edit') {
+  function handlePermissionChange(memberId: string, permission: 'read' | 'read_write') {
     setSelectedUsers((prev) => {
       const next = new Map(prev)
       next.set(memberId, permission)
@@ -131,7 +131,7 @@ export function ShareDialog({ documentId, documentName, onClose }: ShareDialogPr
             ) : (
               teamMembers.map((member) => {
                 const isSelected = selectedUsers.has(member.id)
-                const permission = selectedUsers.get(member.id) ?? 'view'
+                const permission = selectedUsers.get(member.id) ?? 'read'
 
                 return (
                   <div
@@ -156,15 +156,14 @@ export function ShareDialog({ documentId, documentName, onClose }: ShareDialogPr
                     {isSelected && (
                       <Select
                         value={permission}
-                        onValueChange={(val) => handlePermissionChange(member.id, val as 'view' | 'comment' | 'edit')}
+                        onValueChange={(val) => handlePermissionChange(member.id, val as 'read' | 'read_write')}
                       >
                         <SelectTrigger className="w-28 h-7 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="view">View only</SelectItem>
-                          <SelectItem value="comment">Can comment</SelectItem>
-                          <SelectItem value="edit">Can edit</SelectItem>
+                          <SelectItem value="read">Read</SelectItem>
+                          <SelectItem value="read_write">Read & Write</SelectItem>
                         </SelectContent>
                       </Select>
                     )}

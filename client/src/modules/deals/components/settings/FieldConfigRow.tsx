@@ -64,15 +64,12 @@ export function FieldConfigRow({ field, onChange, onRemove }: FieldConfigRowProp
         />
 
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={field.required}
-              onChange={(e) => handleChange('required', e.target.checked)}
-              className="size-4 rounded border-input accent-primary"
-            />
-            Required
-          </label>
+          <Input
+            placeholder="Description"
+            value={field.description}
+            onChange={(e) => handleChange('description', e.target.value)}
+            className="flex-1"
+          />
 
           <Button
             variant="ghost"

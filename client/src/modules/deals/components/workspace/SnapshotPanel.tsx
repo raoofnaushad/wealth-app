@@ -102,8 +102,7 @@ export function SnapshotPanel({ opportunity, investmentTypes, onUpdate }: Snapsh
   function renderField(field: SnapshotField) {
     const rawValue = draft[field.name]
     const value = rawValue != null ? String(rawValue) : ''
-    const isEmpty = value === ''
-    const isRequired = field.required
+    const hasDescription = !!field.description
     const isTextarea = field.type === 'textarea'
 
     const fieldContent = (
@@ -111,12 +110,14 @@ export function SnapshotPanel({ opportunity, investmentTypes, onUpdate }: Snapsh
         <div className="flex items-center gap-2">
           <Label className="text-sm">
             {field.name}
-            {isRequired && <span className="text-destructive ml-0.5">*</span>}
           </Label>
           <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
             {fieldTypeBadgeMap[field.type] ?? field.type}
           </Badge>
         </div>
+        {hasDescription && (
+          <p className="text-xs text-muted-foreground">{field.description}</p>
+        )}
 
         {isTextarea ? (
           <Textarea
@@ -124,7 +125,6 @@ export function SnapshotPanel({ opportunity, investmentTypes, onUpdate }: Snapsh
             onChange={(e) => updateField(field.name, e.target.value)}
             placeholder={field.instruction || `Enter ${field.name}...`}
             rows={3}
-            className={isEmpty && isRequired ? 'border-destructive/50' : ''}
           />
         ) : field.type === 'boolean' ? (
           <select
@@ -155,7 +155,7 @@ export function SnapshotPanel({ opportunity, investmentTypes, onUpdate }: Snapsh
             value={String(value)}
             onChange={(e) => updateField(field.name, field.type === 'number' || field.type === 'currency' || field.type === 'percentage' ? Number(e.target.value) : e.target.value)}
             placeholder={field.instruction || `Enter ${field.name}...`}
-            className={isEmpty && isRequired ? 'border-destructive/50' : ''}
+            className=""
           />
         )}
       </div>

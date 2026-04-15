@@ -64,7 +64,7 @@ export function SnapshotFieldEditor({ investmentType, onBack, onSaved }: Snapsho
               ...s,
               fields: [
                 ...s.fields,
-                { name: '', type: 'text' as const, required: false, instruction: '' },
+                { name: '', type: 'text' as const, description: '', instruction: '' },
               ],
             }
           : s

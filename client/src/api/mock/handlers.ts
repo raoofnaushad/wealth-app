@@ -916,7 +916,7 @@ export const handlers = [
   http.post('/api/deals/documents/:docId/share', async ({ params, request }) => {
     await delay(400)
     const { docId } = params as { docId: string }
-    const body = await request.json() as { sharedWith: string; permission: 'view' | 'comment' | 'edit' }[]
+    const body = await request.json() as { sharedWith: string; permission: 'read' | 'read_write' }[]
     const now = new Date().toISOString()
     const newShares: DocumentShare[] = (Array.isArray(body) ? body : [body]).map(s => ({
       id: `share-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
