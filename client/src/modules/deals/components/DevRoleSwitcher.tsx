@@ -27,12 +27,11 @@ export function DevRoleSwitcher() {
   function handleChange(role: string | null) {
     if (!role) return
     localStorage.setItem(STORAGE_KEY, role)
-    // Patch the auth store's moduleRoles to include the new deals role
+    // Persist to auth_module_roles so it survives reload
     const state = useAuthStore.getState()
-    useAuthStore.setState({
-      moduleRoles: { ...state.moduleRoles, deals: role as ModuleRole },
-    })
-    // Reload to ensure all components pick up the new role
+    const newRoles = { ...state.moduleRoles, deals: role as ModuleRole }
+    localStorage.setItem('auth_module_roles', JSON.stringify(newRoles))
+    useAuthStore.setState({ moduleRoles: newRoles })
     window.location.reload()
   }
 

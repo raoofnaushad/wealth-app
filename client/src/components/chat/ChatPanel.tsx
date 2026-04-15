@@ -95,7 +95,7 @@ export function ChatPanel() {
       <div className="px-4 py-3 border-b border-border shrink-0 flex items-center justify-between min-w-[380px]">
         <div className="flex items-center gap-2">
           <InvictusLogo size="xs" />
-          <h2 className="text-sm font-semibold">AI Copilot</h2>
+          <h2 className="text-sm font-semibold">AI Analyst</h2>
         </div>
         <div className="flex items-center gap-1">
           <Button

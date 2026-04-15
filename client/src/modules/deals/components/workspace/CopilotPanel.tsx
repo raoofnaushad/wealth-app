@@ -3,18 +3,24 @@ import { Send, Bot, User, X, Zap, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import type { Editor } from '@tiptap/react'
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
   context?: string
+  /** Clean text to splice into the editor — only set when context was provided */
+  applyText?: string
+  /** TipTap positions to replace when applying */
+  _pos?: { from: number; to: number }
 }
 
 interface CopilotPanelProps {
   opportunityName: string
   selectedText?: string
-  onApplyText?: (text: string) => void
+  onApplyText?: (text: string, pos: { from: number; to: number }) => void
+  editor?: Editor | null
 }
 
 const QUICK_ACTIONS = [
@@ -24,19 +30,20 @@ const QUICK_ACTIONS = [
   { label: 'Improve', prompt: 'Improve the clarity and professionalism of this text.' },
 ]
 
-export function CopilotPanel({ opportunityName, onApplyText }: CopilotPanelProps) {
+export function CopilotPanel({ opportunityName, onApplyText, editor }: CopilotPanelProps) {
   const [mode, setMode] = useState<'chat' | 'agent'>('chat')
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'sys-1',
       role: 'assistant',
-      content: `I'm your deal copilot for **${opportunityName}**. Select text in the editor and ask me to summarize, shorten, or improve it — or just ask me anything about this opportunity.`,
+      content: `I'm your AI Analyst for "${opportunityName}". Select text in the editor and ask me to summarize, shorten, or improve it — or ask me anything about this deal.`,
     },
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  // Latched selection — captured at mousedown on this panel, before browser clears it
   const [latchedSelection, setLatchedSelection] = useState('')
+  // Store TipTap {from, to} at mousedown — before focus moves and selection collapses
+  const savedPosRef = useRef<{ from: number; to: number } | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -44,20 +51,22 @@ export function CopilotPanel({ opportunityName, onApplyText }: CopilotPanelProps
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, loading])
 
-  /**
-   * Called on mousedown of the entire panel container.
-   * At this point the DOM selection is still alive — snapshot it before
-   * the browser clears it when focus moves to our input.
-   */
   function handlePanelMouseDown() {
     const text = window.getSelection()?.toString().trim() ?? ''
-    if (text) {
-      setLatchedSelection(text)
+    if (!text) return
+    setLatchedSelection(text)
+    // Read TipTap selection positions right now, before focus moves
+    if (editor && !editor.state.selection.empty) {
+      const { from, to } = editor.state.selection
+      savedPosRef.current = { from, to }
+    } else {
+      savedPosRef.current = null
     }
   }
 
   function clearSelection() {
     setLatchedSelection('')
+    savedPosRef.current = null
   }
 
   function handleSend(overridePrompt?: string) {
@@ -65,6 +74,8 @@ export function CopilotPanel({ opportunityName, onApplyText }: CopilotPanelProps
     if (!text || loading) return
 
     const context = latchedSelection || undefined
+    const savedPos = savedPosRef.current
+
     const userMsg: Message = {
       id: `msg-${Date.now()}`,
       role: 'user',
@@ -77,10 +88,13 @@ export function CopilotPanel({ opportunityName, onApplyText }: CopilotPanelProps
     setLoading(true)
 
     setTimeout(() => {
+      const { display, apply } = generateMockReply(text, context ?? null, mode)
       const reply: Message = {
         id: `msg-${Date.now()}-reply`,
         role: 'assistant',
-        content: generateMockReply(text, context ?? null, mode),
+        content: display,
+        applyText: apply && savedPos ? apply : undefined,
+        _pos: apply && savedPos ? savedPos : undefined,
       }
       setMessages((prev) => [...prev, reply])
       setLoading(false)
@@ -104,7 +118,7 @@ export function CopilotPanel({ opportunityName, onApplyText }: CopilotPanelProps
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
           <Bot className="size-3.5 text-primary" />
         </div>
-        <span className="text-sm font-medium flex-1">Copilot</span>
+        <span className="text-sm font-medium flex-1">AI Analyst</span>
       </div>
 
       {/* Messages */}
@@ -115,11 +129,9 @@ export function CopilotPanel({ opportunityName, onApplyText }: CopilotPanelProps
               'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs mt-0.5',
               msg.role === 'assistant' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
             )}>
-              {msg.role === 'assistant'
-                ? <Bot className="size-3" />
-                : <User className="size-3" />}
+              {msg.role === 'assistant' ? <Bot className="size-3" /> : <User className="size-3" />}
             </div>
-            <div className="flex flex-col gap-1 max-w-[85%]">
+            <div className="flex flex-col gap-1 max-w-[85%] min-w-0">
               {msg.context && (
                 <div className="flex items-start gap-1 rounded-md bg-muted/60 border border-border px-2 py-1">
                   <FileText className="size-3 text-muted-foreground mt-0.5 shrink-0" />
@@ -135,10 +147,12 @@ export function CopilotPanel({ opportunityName, onApplyText }: CopilotPanelProps
                 {msg.content}
               </div>
               {msg.role === 'assistant' && mode === 'agent' && onApplyText &&
+                msg.applyText && msg._pos &&
                 msg.id === messages[messages.length - 1]?.id && !loading && (
                 <button
                   type="button"
-                  onClick={() => onApplyText(msg.content)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={() => onApplyText(msg.applyText!, msg._pos!)}
                   className="self-start flex items-center gap-1 text-[11px] text-primary hover:underline"
                 >
                   <Zap className="size-3" />
@@ -202,7 +216,7 @@ export function CopilotPanel({ opportunityName, onApplyText }: CopilotPanelProps
 
       {/* Input row */}
       <div className="border-t px-3 pt-2 pb-3 space-y-2 shrink-0">
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-2 min-w-0">
           <Textarea
             ref={textareaRef}
             value={input}
@@ -216,7 +230,7 @@ export function CopilotPanel({ opportunityName, onApplyText }: CopilotPanelProps
                 : 'Ask about this opportunity...'
             }
             rows={2}
-            className="flex-1 resize-none text-sm min-h-0 py-2"
+            className="min-w-0 flex-1 resize-none text-sm py-2"
             disabled={loading}
           />
           <Button
@@ -248,9 +262,7 @@ export function CopilotPanel({ opportunityName, onApplyText }: CopilotPanelProps
             {mode === 'agent' ? 'Agent mode on' : 'Agent mode'}
           </button>
           {mode === 'agent' && (
-            <span className="text-[10px] text-muted-foreground">
-              Can apply changes to editor
-            </span>
+            <span className="text-[10px] text-muted-foreground">Can apply to editor</span>
           )}
         </div>
       </div>
@@ -258,28 +270,41 @@ export function CopilotPanel({ opportunityName, onApplyText }: CopilotPanelProps
   )
 }
 
-function generateMockReply(query: string, context: string | null, mode: 'chat' | 'agent'): string {
+function generateMockReply(
+  query: string,
+  context: string | null,
+  mode: 'chat' | 'agent',
+): { display: string; apply: string | null } {
   const lower = query.toLowerCase()
 
   if (context) {
-    if (lower.includes('summar'))
-      return `Here's a summary:\n\n"${context.slice(0, 80)}${context.length > 80 ? '...' : ''}"\n\nThis passage covers the core investment thesis and key risk factors. The GP highlights strong sector tailwinds and a proprietary deal sourcing advantage.`
-    if (lower.includes('shorten'))
-      return context.split(' ').slice(0, Math.max(8, Math.floor(context.split(' ').length * 0.4))).join(' ') + '...'
-    if (lower.includes('expand'))
-      return `${context}\n\nFurthermore, this aligns with broader market trends in the sector, supported by recent macroeconomic data indicating strong demand tailwinds and a favorable regulatory environment for new entrants.`
-    if (lower.includes('improve'))
-      return `${context.charAt(0).toUpperCase() + context.slice(1).replace(/\s+/g, ' ').trim()} This positions the fund favorably relative to peers in terms of both return potential and downside protection.`
-    return `Based on the selected text, here is my analysis: the content appears to be ${context.length > 100 ? 'a detailed section' : 'a brief note'} covering key investment considerations. ${mode === 'agent' ? 'I can apply a revised version directly to the document.' : 'Let me know if you want me to rewrite or expand on any part.'}`
+    if (lower.includes('summar')) {
+      const apply = `${context.slice(0, 80)}${context.length > 80 ? '...' : ''} — covering the core investment thesis, key risk factors, strong sector tailwinds, and a proprietary deal sourcing advantage.`
+      return { display: `Here's a summary:\n\n"${apply}"`, apply }
+    }
+    if (lower.includes('shorten')) {
+      const apply = context.split(' ').slice(0, Math.max(8, Math.floor(context.split(' ').length * 0.4))).join(' ') + '.'
+      return { display: apply, apply }
+    }
+    if (lower.includes('expand')) {
+      const apply = `${context} Furthermore, this aligns with broader market trends in the sector, supported by recent macroeconomic data indicating strong demand tailwinds and a favorable regulatory environment for new entrants.`
+      return { display: apply, apply }
+    }
+    if (lower.includes('improve')) {
+      const apply = `${context.charAt(0).toUpperCase() + context.slice(1).replace(/\s+/g, ' ').trim()} This positions the fund favorably relative to peers in terms of both return potential and downside protection.`
+      return { display: apply, apply }
+    }
+    const display = `Based on the selected text: the content covers key investment considerations. ${mode === 'agent' ? 'Use a quick action (Summarize, Shorten, Expand, Improve) to generate applicable text.' : 'Let me know if you want me to rewrite or expand on any part.'}`
+    return { display, apply: null }
   }
 
   if (lower.includes('fee') || lower.includes('cost'))
-    return 'The management fee is 2.0% with 20% carried interest — in line with industry standard for this fund size and strategy.'
+    return { display: 'The management fee is 2.0% with 20% carried interest — in line with industry standard for this fund size and strategy.', apply: null }
   if (lower.includes('risk'))
-    return 'Key risks include concentration in the healthcare sector, currency exposure from EU portfolio companies, and GP key-person dependency. I recommend adding a risk section to the investment memo.'
+    return { display: 'Key risks include concentration in the healthcare sector, currency exposure from EU portfolio companies, and GP key-person dependency. I recommend adding a risk section to the investment memo.', apply: null }
   if (lower.includes('compare') || lower.includes('benchmark'))
-    return 'Compared to peer funds in the same vintage year, this fund targets a higher IRR (18–22% vs median 15–18%) but also has a larger fund size. Fee structure is competitive.'
+    return { display: 'Compared to peer funds in the same vintage year, this fund targets a higher IRR (18–22% vs median 15–18%) but also has a larger fund size. Fee structure is competitive.', apply: null }
   if (lower.includes('summary') || lower.includes('overview'))
-    return 'Growth equity fund targeting healthcare and technology. Fund size $2B, 10-year term. Strong GP track record over 2 prior funds. Strategy fit with active mandates is high.'
-  return "I've reviewed the opportunity data. The key metrics look solid — strong mandate fit score, competitive terms, and an experienced GP team. Would you like me to drill deeper into any specific aspect?"
+    return { display: 'Growth equity fund targeting healthcare and technology. Fund size $2B, 10-year term. Strong GP track record over 2 prior funds. Strategy fit with active mandates is high.', apply: null }
+  return { display: "I've reviewed the opportunity data. The key metrics look solid — strong mandate fit score, competitive terms, and an experienced GP team. Would you like me to drill deeper into any specific aspect?", apply: null }
 }

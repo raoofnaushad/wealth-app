@@ -99,7 +99,7 @@ export function TopNav({ onModuleSwitcherOpen }: TopNavProps) {
           onClick={toggleChat}
           className="h-8 w-8 relative"
         >
-          <img src="/invictus-logo.svg" alt="AI Copilot" className="h-7 w-7 dark:invert" />
+          <img src="/invictus-logo.svg" alt="AI Analyst" className="h-7 w-7 dark:invert" />
         </Button>
         <NotificationBell />
         <Button variant="ghost" size="icon" onClick={toggle} className="h-8 w-8">

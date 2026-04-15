@@ -49,6 +49,7 @@ interface DocumentPanelProps {
   document: Document
   opportunityId: string
   onUpdate: (doc: Document) => void
+  onEditorReady?: (editor: Editor | null) => void
 }
 
 const statusConfig: Record<DocumentStatus, { label: string; className: string }> = {
@@ -402,7 +403,7 @@ function LogoUpload({
 
 // ── Main Component ──────────────────────────────────────────────────
 
-export function DocumentPanel({ document, opportunityId, onUpdate }: DocumentPanelProps) {
+export function DocumentPanel({ document, opportunityId, onUpdate, onEditorReady }: DocumentPanelProps) {
   const [name, setName] = useState(document.name)
   const [editingName, setEditingName] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
@@ -487,6 +488,12 @@ export function DocumentPanel({ document, opportunityId, onUpdate }: DocumentPan
       handleContentChange(html)
     },
   })
+
+  // Notify parent when editor is ready or destroyed
+  useEffect(() => {
+    onEditorReady?.(editor)
+    return () => onEditorReady?.(null)
+  }, [editor, onEditorReady])
 
   // Sync editor content when document prop changes (e.g., from undo/redo)
   useEffect(() => {

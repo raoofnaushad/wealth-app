@@ -106,7 +106,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask the AI copilot..."
+          placeholder="Ask the AI Analyst..."
           disabled={disabled}
           className="min-h-[36px] max-h-[120px] resize-none text-sm"
           rows={1}

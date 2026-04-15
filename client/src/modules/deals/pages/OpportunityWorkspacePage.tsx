@@ -32,6 +32,7 @@ export function OpportunityWorkspacePage() {
   const [showValidation, setShowValidation] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [rightPanel, setRightPanel] = useState<'none' | 'copilot' | 'comments'>('none')
+  const activeEditorRef = useRef<import('@tiptap/react').Editor | null>(null)
 
   useEffect(() => {
     if (oppId) {
@@ -171,7 +172,7 @@ export function OpportunityWorkspacePage() {
           className="h-6 px-2.5 text-xs gap-1"
           onClick={() => setRightPanel(rightPanel === 'copilot' ? 'none' : 'copilot')}
         >
-          Copilot
+          AI Analyst
         </Button>
         <Button
           variant={rightPanel === 'comments' ? 'default' : 'outline'}
@@ -222,6 +223,7 @@ export function OpportunityWorkspacePage() {
                 document={activeDocument}
                 opportunityId={opp.id}
                 onUpdate={(doc) => store.updateWorkspaceDocument(doc)}
+                onEditorReady={(ed) => { activeEditorRef.current = ed }}
               />
             )}
             {activeTab?.type === 'note' && (
@@ -243,13 +245,11 @@ export function OpportunityWorkspacePage() {
           <div className="w-80 shrink-0">
             <CopilotPanel
               opportunityName={opp.name}
-              onApplyText={(text) => {
-                const sel = window.getSelection()
-                if (!sel || sel.rangeCount === 0) return
-                const range = sel.getRangeAt(0)
-                range.deleteContents()
-                range.insertNode(document.createTextNode(text))
-                sel.removeAllRanges()
+              editor={activeEditorRef.current}
+              onApplyText={(text, pos) => {
+                const ed = activeEditorRef.current
+                if (!ed) return
+                ed.chain().focus().insertContentAt(pos, text).run()
               }}
             />
           </div>
