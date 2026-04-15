@@ -9,7 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { toast } from 'sonner'
 import { useDealsStore } from '../store'
+import { dealsApi } from '../api'
 import { AssetManagerTable } from '../components/asset-managers/AssetManagerTable'
 import { AssetManagerForm } from '../components/asset-managers/AssetManagerForm'
 
@@ -27,6 +29,16 @@ export function AssetManagerListPage() {
   const assetManagers = useDealsStore((s) => s.assetManagers)
   const loadingAssetManagers = useDealsStore((s) => s.loadingAssetManagers)
   const fetchAssetManagers = useDealsStore((s) => s.fetchAssetManagers)
+
+  async function handleDelete(id: string) {
+    try {
+      await dealsApi.deleteAssetManager(id)
+      await fetchAssetManagers()
+      toast.success('Asset manager deleted.')
+    } catch {
+      toast.error('Failed to delete asset manager.')
+    }
+  }
 
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('')
@@ -84,7 +96,7 @@ export function AssetManagerListPage() {
           ))}
         </div>
       ) : (
-        <AssetManagerTable assetManagers={filtered} />
+        <AssetManagerTable assetManagers={filtered} onDelete={handleDelete} />
       )}
 
       <AssetManagerForm open={formOpen} onOpenChange={setFormOpen} />

@@ -1,4 +1,5 @@
 import { Fragment, useState, useEffect } from 'react'
+import { Bot, Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
 import { dealsApi } from '../../api'
 import { cn } from '@/lib/utils'
 import type { ApprovalStage, ApprovalRequest, Document, TeamMember } from '../../types'
@@ -107,6 +109,8 @@ export function ValidationDialog({
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [rationale, setRationale] = useState('')
+  const [generatingRationale, setGeneratingRationale] = useState(false)
 
   const nextStage = getNextStage(currentStage)
 
@@ -264,6 +268,47 @@ export function ValidationDialog({
                 })
               )}
             </div>
+          </div>
+
+          {/* Rationale */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Rationale (optional):</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 text-xs"
+                disabled={generatingRationale || selectedDocIds.size === 0}
+                onClick={async () => {
+                  setGeneratingRationale(true)
+                  // Simulate AI rationale generation
+                  await new Promise(r => setTimeout(r, 1500))
+                  setRationale(
+                    `Based on analysis of ${selectedDocIds.size} document(s), this opportunity demonstrates strong alignment with active mandates. Key strengths include competitive fee structure, experienced GP team, and favorable market positioning. The opportunity meets the criteria for advancement to ${nextStage ? STAGE_LABELS[nextStage] : 'the next stage'}.`
+                  )
+                  setGeneratingRationale(false)
+                }}
+              >
+                {generatingRationale ? (
+                  <>
+                    <Loader2 className="size-3 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Bot className="size-3" />
+                    Auto-generate
+                  </>
+                )}
+              </Button>
+            </div>
+            <Textarea
+              value={rationale}
+              onChange={(e) => setRationale(e.target.value)}
+              placeholder="Provide context for reviewers..."
+              rows={3}
+              className="text-sm"
+            />
           </div>
         </div>
 

@@ -87,10 +87,10 @@
 - [x] `DevRoleSwitcher` component (guard: `import.meta.env.DEV`)
 - [x] Persists role to `localStorage`, patches `useAuthStore`
 
-### Phase 12 — Collaboration Enhancements
-- [ ] `ShareDialog`: permission → `Read` / `Read & Write`
-- [ ] Validation workflow: Copilot rationale auto-generation
-- [ ] `AssetManagerTable`: hide Delete for non-Owner roles
+### ~~Phase 12 — Collaboration Enhancements~~ ✅ DONE
+- [x] `ShareDialog`: permission → `Read` / `Read & Write`
+- [x] Validation workflow: Copilot rationale auto-generation
+- [x] `AssetManagerTable`: hide Delete for non-Owner roles
 
 ## BLOCKED / NEEDS DECISION
 - (none)
