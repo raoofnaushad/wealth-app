@@ -77,11 +77,11 @@
 - [x] Mini calendar widget
 - [x] Google Calendar sync status indicator
 
-### Phase 10 — Notification Panel
-- [ ] `NotificationPanel` slide-in drawer
-- [ ] Notification store slice (`notifications`, `unreadCount`, `markRead`)
-- [ ] 10+ notification type renderers
-- [ ] Bell icon with unread badge in layout header
+### ~~Phase 10 — Notification Panel~~ ✅ DONE
+- [x] `NotificationPanel` slide-in drawer
+- [x] Notification store slice (`notifications`, `unreadCount`, `markRead`)
+- [x] 10+ notification type renderers (13 types)
+- [x] Bell icon with unread badge in layout header
 
 ### Phase 11 — Role Switcher (Dev Only)
 - [ ] `DevRoleSwitcher` component (guard: `import.meta.env.DEV`)

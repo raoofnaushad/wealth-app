@@ -1,4 +1,5 @@
 import { Sun, Moon, Grid3X3, LogOut, ChevronRight, User } from 'lucide-react'
+import { NotificationBell } from '@/modules/deals/components/NotificationPanel'
 import { useThemeStore } from '@/store/useThemeStore'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useChatStore } from '@/store/useChatStore'
@@ -100,6 +101,7 @@ export function TopNav({ onModuleSwitcherOpen }: TopNavProps) {
         >
           <img src="/invictus-logo.svg" alt="AI Copilot" className="h-7 w-7 dark:invert" />
         </Button>
+        <NotificationBell />
         <Button variant="ghost" size="icon" onClick={toggle} className="h-8 w-8">
           {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
         </Button>
