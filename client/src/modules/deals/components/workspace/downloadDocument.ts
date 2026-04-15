@@ -76,7 +76,11 @@ async function renderEditorScreenshot(
   editorClone.querySelectorAll('[data-node-view-wrapper]').forEach((nodeWrapper) => {
     const srcImg = nodeWrapper.querySelector('img')
     if (!srcImg) { nodeWrapper.remove(); return }
-    const captionText = nodeWrapper.querySelector('figcaption')?.textContent?.trim()
+    // In editable mode TipTap renders the caption as a <button>; in read-only as <figcaption>.
+    const captionRaw =
+      nodeWrapper.querySelector('figcaption')?.textContent?.trim() ??
+      nodeWrapper.querySelector('button[type="button"]')?.textContent?.trim()
+    const captionText = captionRaw && captionRaw !== 'Click to add description...' ? captionRaw : undefined
     const alignment = (nodeWrapper.querySelector('figure') as HTMLElement | null)
       ?.getAttribute('data-alignment') ?? 'center'
 
