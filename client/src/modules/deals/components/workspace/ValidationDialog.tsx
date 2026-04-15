@@ -1,5 +1,6 @@
 import { Fragment, useState, useEffect } from 'react'
 import { Bot, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -169,8 +170,9 @@ export function ValidationDialog({
         documentIds: Array.from(selectedDocIds),
       })
       onSubmitted(result)
+      toast.success(`Sent for ${STAGE_LABELS[nextStage]} approval`)
     } catch {
-      // TODO: toast
+      toast.error('Failed to submit for approval.')
     } finally {
       setSubmitting(false)
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -97,9 +98,11 @@ export function ShareDialog({ documentId, documentName, onClose }: ShareDialogPr
         )
       )
 
+      const count = selectedUsers.size
       onClose()
+      toast.success(`Shared with ${count} ${count === 1 ? 'member' : 'members'}`)
     } catch {
-      // Error handling will be improved when toast notifications are added
+      toast.error('Failed to share document.')
     } finally {
       setSubmitting(false)
     }
