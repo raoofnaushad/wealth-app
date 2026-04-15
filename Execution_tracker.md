@@ -83,9 +83,9 @@
 - [x] 10+ notification type renderers (13 types)
 - [x] Bell icon with unread badge in layout header
 
-### Phase 11 — Role Switcher (Dev Only)
-- [ ] `DevRoleSwitcher` component (guard: `import.meta.env.DEV`)
-- [ ] Persists role to `localStorage`, patches `useAuthStore`
+### ~~Phase 11 — Role Switcher (Dev Only)~~ ✅ DONE
+- [x] `DevRoleSwitcher` component (guard: `import.meta.env.DEV`)
+- [x] Persists role to `localStorage`, patches `useAuthStore`
 
 ### Phase 12 — Collaboration Enhancements
 - [ ] `ShareDialog`: permission → `Read` / `Read & Write`
