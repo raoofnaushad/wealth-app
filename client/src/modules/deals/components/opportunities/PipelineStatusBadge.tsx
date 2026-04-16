@@ -23,10 +23,6 @@ const statusConfig: Record<PipelineStatus, { label: string; className: string }>
     label: 'Ignored',
     className: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
   },
-  processing: {
-    label: 'Processing',
-    className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-  },
 }
 
 export function PipelineStatusBadge({ status }: PipelineStatusBadgeProps) {

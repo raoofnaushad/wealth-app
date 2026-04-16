@@ -21,13 +21,6 @@ import type {
   TeamMember,
   ApprovalRequest,
   ApprovalStage,
-  DealEvent,
-  DealTask,
-  DealNotification,
-  GoogleCalendarAccount,
-  DocumentComment,
-  TaskStatus,
-  TaskPriority,
 } from './types'
 
 export const dealsApi = {
@@ -198,74 +191,4 @@ export const dealsApi = {
     api.post<GoogleDriveImportJob>(`/deals/integrations/google-drive/import?accountId=${accountId}`, data),
   getImportJob: (jobId: string) =>
     api.get<GoogleDriveImportJob>(`/deals/integrations/google-drive/import/${jobId}`),
-
-  // Events
-  listEvents: (filters?: { opportunityId?: string; mandateId?: string; from?: string; to?: string }) => {
-    const params = new URLSearchParams()
-    if (filters?.opportunityId) params.set('opportunityId', filters.opportunityId)
-    if (filters?.mandateId) params.set('mandateId', filters.mandateId)
-    if (filters?.from) params.set('from', filters.from)
-    if (filters?.to) params.set('to', filters.to)
-    const qs = params.toString()
-    return api.get<DealEvent[]>(`/deals/events${qs ? `?${qs}` : ''}`)
-  },
-  createEvent: (data: Partial<DealEvent>) => api.post<DealEvent>('/deals/events', data),
-  updateEvent: (id: string, data: Partial<DealEvent>) =>
-    api.put<DealEvent>(`/deals/events/${id}`, data),
-  deleteEvent: (id: string) => api.delete<void>(`/deals/events/${id}`),
-
-  // Tasks
-  listTasks: (filters?: { assigneeId?: string; status?: TaskStatus; priority?: TaskPriority; opportunityId?: string }) => {
-    const params = new URLSearchParams()
-    if (filters?.assigneeId) params.set('assigneeId', filters.assigneeId)
-    if (filters?.status) params.set('status', filters.status)
-    if (filters?.priority) params.set('priority', filters.priority)
-    if (filters?.opportunityId) params.set('opportunityId', filters.opportunityId)
-    const qs = params.toString()
-    return api.get<DealTask[]>(`/deals/tasks${qs ? `?${qs}` : ''}`)
-  },
-  createTask: (data: Partial<DealTask>) => api.post<DealTask>('/deals/tasks', data),
-  updateTask: (id: string, data: Partial<DealTask>) =>
-    api.put<DealTask>(`/deals/tasks/${id}`, data),
-  deleteTask: (id: string) => api.delete<void>(`/deals/tasks/${id}`),
-
-  // Notifications
-  listNotifications: () => api.get<DealNotification[]>('/deals/notifications'),
-  markNotificationRead: (id: string) =>
-    api.put<DealNotification>(`/deals/notifications/${id}/read`, {}),
-
-  // Google Calendar
-  listCalendarAccounts: () =>
-    api.get<GoogleCalendarAccount[]>('/deals/integrations/google-calendar'),
-  connectCalendar: (data: { emailAddress?: string }) =>
-    api.post<GoogleCalendarAccount>('/deals/integrations/google-calendar', data),
-  disconnectCalendar: (id: string) =>
-    api.delete<void>(`/deals/integrations/google-calendar/${id}`),
-
-  // Comments
-  listComments: (opportunityId: string) =>
-    api.get<DocumentComment[]>(`/deals/opportunities/${opportunityId}/comments`),
-  createComment: (opportunityId: string, data: { documentId?: string; sectionHeading?: string; content: string; parentId?: string }) =>
-    api.post<DocumentComment>(`/deals/opportunities/${opportunityId}/comments`, data),
-
-  // Export
-  exportOpportunity: (opportunityId: string, data: { format: 'pdf' | 'docx' }) =>
-    api.post<{ url: string }>(`/deals/opportunities/${opportunityId}/export`, data),
-
-  // Unignore email
-  unignoreEmail: (id: string) => api.put<SyncedEmail>(`/deals/emails/${id}/unignore`, {}),
-
-  // Dashboard — team activity
-  getTeamActivity: () =>
-    api.get<{ userId: string; userName: string; actions: number; lastActive: string }[]>('/deals/dashboard/team-activity'),
-
-  // Mandate matched opportunities
-  getMandateMatches: (mandateId: string) =>
-    api.get<(Opportunity & { matchScore: number })[]>(`/deals/mandates/${mandateId}/matches`),
-
-  // Template CRUD (create & delete — update already exists)
-  createTemplate: (data: Partial<DocumentTemplate>) =>
-    api.post<DocumentTemplate>('/deals/settings/templates', data),
-  deleteTemplate: (id: string) =>
-    api.delete<void>(`/deals/settings/templates/${id}`),
 }

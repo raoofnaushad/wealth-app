@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Toaster } from 'sonner'
 import { useAuthStore } from '@/store/useAuthStore'
 import { AppShell } from '@/components/layout/AppShell'
 import { LoginPage } from '@/pages/LoginPage'
@@ -28,7 +27,6 @@ import { AssetManagerDetailPage } from '@/modules/deals/pages/AssetManagerDetail
 import { OpportunityWorkspacePage } from '@/modules/deals/pages/OpportunityWorkspacePage'
 import { NewsPage } from '@/modules/deals/pages/NewsPage'
 import { EmailHubPage } from '@/modules/deals/pages/EmailHubPage'
-import { EventsTasksPage } from '@/modules/deals/pages/EventsTasksPage'
 import { CompanyProfilePage } from '@/modules/admin/pages/CompanyProfilePage'
 import { BrandingPage } from '@/modules/admin/pages/BrandingPage'
 import { UsersPage } from '@/modules/admin/pages/UsersPage'
@@ -53,7 +51,6 @@ function GuestGuard({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-  <>
     <BrowserRouter>
       <Routes>
         <Route
@@ -103,7 +100,6 @@ function App() {
             <Route path="asset-managers/:assetManagerId" element={<AssetManagerDetailPage />} />
             <Route path="news" element={<NewsPage />} />
             <Route path="email" element={<EmailHubPage />} />
-            <Route path="events" element={<EventsTasksPage />} />
             <Route path="settings" element={<DealsSettingsPage />} />
           </Route>
 
@@ -116,8 +112,6 @@ function App() {
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
     </BrowserRouter>
-    <Toaster richColors position="bottom-right" />
-  </>
   )
 }
 

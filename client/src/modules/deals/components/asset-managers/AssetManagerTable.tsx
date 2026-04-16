@@ -1,18 +1,12 @@
 import { useNavigate } from 'react-router-dom'
-import { Trash2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useAuthStore } from '@/store/useAuthStore'
 import type { AssetManager } from '../../types'
 
 interface AssetManagerTableProps {
   assetManagers: AssetManager[]
-  onDelete?: (id: string) => void
 }
 
-export function AssetManagerTable({ assetManagers, onDelete }: AssetManagerTableProps) {
+export function AssetManagerTable({ assetManagers }: AssetManagerTableProps) {
   const navigate = useNavigate()
-  const role = useAuthStore((s) => s.getModuleRole('deals'))
-  const isOwner = role === 'owner'
 
   if (assetManagers.length === 0) {
     return (
@@ -32,7 +26,6 @@ export function AssetManagerTable({ assetManagers, onDelete }: AssetManagerTable
             <th className="px-4 py-3 font-medium">Location</th>
             <th className="px-4 py-3 font-medium">Firm AUM</th>
             <th className="px-4 py-3 font-medium">Last Modified</th>
-            {isOwner && <th className="px-4 py-3 font-medium w-16" />}
           </tr>
         </thead>
         <tbody>
@@ -51,21 +44,6 @@ export function AssetManagerTable({ assetManagers, onDelete }: AssetManagerTable
               <td className="px-4 py-3 text-muted-foreground">
                 {new Date(am.updatedAt).toLocaleDateString()}
               </td>
-              {isOwner && (
-                <td className="px-4 py-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7 text-muted-foreground hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDelete?.(am.id)
-                    }}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </td>
-              )}
             </tr>
           ))}
         </tbody>
