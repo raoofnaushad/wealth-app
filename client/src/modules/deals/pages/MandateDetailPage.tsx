@@ -7,7 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { dealsApi } from '../api'
 import { StrategyOverview } from '../components/mandates/StrategyOverview'
-import type { Mandate, MandateStatus } from '../types'
+import { PipelineStatusBadge } from '../components/opportunities/PipelineStatusBadge'
+import type { Mandate, MandateStatus, Opportunity } from '../types'
 
 const statusConfig: Record<MandateStatus, { label: string; className: string }> = {
   active: { label: 'Active', className: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' },
@@ -85,17 +86,78 @@ export function MandateDetailPage() {
         </TabsContent>
 
         <TabsContent value="opportunities" className="mt-4">
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
-            <FileText className="size-10 text-muted-foreground/50" />
-            <div>
-              <p className="font-medium">Opportunities</p>
-              <p className="text-sm text-muted-foreground">
-                Matched opportunities for this mandate will appear here.
-              </p>
-            </div>
-          </div>
+          <MatchedOpportunities mandateId={mandate.id} />
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+function MatchedOpportunities({ mandateId }: { mandateId: string }) {
+  const navigate = useNavigate()
+  const [matches, setMatches] = useState<(Opportunity & { matchScore: number })[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    dealsApi.getMandateMatches(mandateId)
+      .then(setMatches)
+      .finally(() => setLoading(false))
+  }, [mandateId])
+
+  if (loading) {
+    return <div className="py-8 text-center text-sm text-muted-foreground">Loading matches...</div>
+  }
+
+  if (matches.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
+        <FileText className="size-10 text-muted-foreground/50" />
+        <div>
+          <p className="font-medium">No Matches</p>
+          <p className="text-sm text-muted-foreground">
+            No opportunities match this mandate yet.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-lg border">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b bg-muted/50 text-left text-muted-foreground">
+            <th className="px-4 py-3 font-medium">Fit Score</th>
+            <th className="px-4 py-3 font-medium">Opportunity</th>
+            <th className="px-4 py-3 font-medium">Type</th>
+            <th className="px-4 py-3 font-medium">Pipeline Status</th>
+            <th className="px-4 py-3 font-medium">Asset Manager</th>
+          </tr>
+        </thead>
+        <tbody>
+          {matches.map((opp) => (
+            <tr
+              key={opp.id}
+              className="cursor-pointer border-b transition-colors hover:bg-muted/50 last:border-b-0"
+              onClick={() => navigate(`/home/deals/opportunities/${opp.id}`)}
+            >
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    {opp.matchScore}
+                  </div>
+                </div>
+              </td>
+              <td className="px-4 py-3 font-medium">{opp.name}</td>
+              <td className="px-4 py-3">{opp.investmentTypeName}</td>
+              <td className="px-4 py-3">
+                <PipelineStatusBadge status={opp.pipelineStatus} />
+              </td>
+              <td className="px-4 py-3 text-muted-foreground">{opp.assetManagerName}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

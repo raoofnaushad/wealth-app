@@ -9,7 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { toast } from 'sonner'
 import { useDealsStore } from '../store'
+import { useAuthStore } from '@/store/useAuthStore'
+import { dealsApi } from '../api'
 import { AssetManagerTable } from '../components/asset-managers/AssetManagerTable'
 import { AssetManagerForm } from '../components/asset-managers/AssetManagerForm'
 
@@ -28,9 +31,21 @@ export function AssetManagerListPage() {
   const loadingAssetManagers = useDealsStore((s) => s.loadingAssetManagers)
   const fetchAssetManagers = useDealsStore((s) => s.fetchAssetManagers)
 
+  async function handleDelete(id: string) {
+    try {
+      await dealsApi.deleteAssetManager(id)
+      await fetchAssetManagers()
+      toast.success('Asset manager deleted.')
+    } catch {
+      toast.error('Failed to delete asset manager.')
+    }
+  }
+
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('')
   const [formOpen, setFormOpen] = useState(false)
+  const role = useAuthStore((s) => s.getModuleRole('deals'))
+  const canCreate = role === 'owner' || role === 'manager'
 
   useEffect(() => {
     fetchAssetManagers()
@@ -46,10 +61,12 @@ export function AssetManagerListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Asset Managers</h1>
-        <Button onClick={() => setFormOpen(true)}>
-          <Plus className="mr-1.5 size-4" />
-          Add Asset Manager
-        </Button>
+        {canCreate && (
+          <Button onClick={() => setFormOpen(true)}>
+            <Plus className="mr-1.5 size-4" />
+            Add Asset Manager
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -84,10 +101,10 @@ export function AssetManagerListPage() {
           ))}
         </div>
       ) : (
-        <AssetManagerTable assetManagers={filtered} />
+        <AssetManagerTable assetManagers={filtered} onDelete={handleDelete} />
       )}
 
-      <AssetManagerForm open={formOpen} onOpenChange={setFormOpen} />
+      {canCreate && <AssetManagerForm open={formOpen} onOpenChange={setFormOpen} />}
     </div>
   )
 }

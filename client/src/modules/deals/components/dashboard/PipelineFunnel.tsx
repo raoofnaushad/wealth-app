@@ -11,6 +11,7 @@ const STATUS_COLORS: Record<string, string> = {
   active: '#10b981',
   archived: '#94a3b8',
   ignored: '#ef4444',
+  processing: '#f59e0b',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -18,6 +19,7 @@ const STATUS_LABELS: Record<string, string> = {
   active: 'Active',
   archived: 'Archived',
   ignored: 'Ignored',
+  processing: 'Processing',
 }
 
 export function PipelineFunnel({ pipelineCounts }: PipelineFunnelProps) {

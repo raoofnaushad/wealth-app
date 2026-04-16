@@ -4,6 +4,7 @@ import { Plus, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useDealsStore } from '../store'
+import { useAuthStore } from '@/store/useAuthStore'
 import { MandateCard } from '../components/mandates/MandateCard'
 import { MandateForm } from '../components/mandates/MandateForm'
 import type { MandateStatus } from '../types'
@@ -15,6 +16,8 @@ export function MandateListPage() {
   const { mandates, loadingMandates, fetchMandates } = useDealsStore()
   const [tab, setTab] = useState<TabValue>('all')
   const [formOpen, setFormOpen] = useState(false)
+  const role = useAuthStore((s) => s.getModuleRole('deals'))
+  const canCreateMandate = role === 'owner' || role === 'manager'
 
   useEffect(() => {
     fetchMandates()
@@ -26,10 +29,12 @@ export function MandateListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Mandates</h1>
-        <Button onClick={() => setFormOpen(true)}>
-          <Plus className="mr-1.5 size-4" />
-          Create Mandate
-        </Button>
+        {canCreateMandate && (
+          <Button onClick={() => setFormOpen(true)}>
+            <Plus className="mr-1.5 size-4" />
+            Create Mandate
+          </Button>
+        )}
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
@@ -61,7 +66,7 @@ export function MandateListPage() {
                     : `No ${tab} mandates yet.`}
                 </p>
               </div>
-              {tab === 'all' && (
+              {tab === 'all' && canCreateMandate && (
                 <Button variant="outline" size="sm" onClick={() => setFormOpen(true)}>
                   <Plus className="mr-1 size-3.5" />
                   Create Mandate
@@ -82,7 +87,7 @@ export function MandateListPage() {
         </TabsContent>
       </Tabs>
 
-      <MandateForm open={formOpen} onOpenChange={setFormOpen} />
+      {canCreateMandate && <MandateForm open={formOpen} onOpenChange={setFormOpen} />}
     </div>
   )
 }

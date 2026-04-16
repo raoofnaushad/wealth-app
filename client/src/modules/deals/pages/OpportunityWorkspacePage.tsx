@@ -3,6 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useDealsStore } from '../store'
 import { useUndoRedo } from '../components/workspace/useUndoRedo'
 import { useUIStore } from '@/store/useUIStore'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { WorkspaceHeader } from '../components/workspace/WorkspaceHeader'
 import { WorkspaceSidebar } from '../components/workspace/WorkspaceSidebar'
 import { WorkspaceContentTabs } from '../components/workspace/WorkspaceContentTabs'
@@ -13,6 +22,9 @@ import { CreateDocumentDialog } from '../components/workspace/CreateDocumentDial
 import { ValidationDialog } from '../components/workspace/ValidationDialog'
 import { ShareDialog } from '../components/workspace/ShareDialog'
 import { ReviewBanner } from '../components/workspace/ReviewBanner'
+import { NotesCanvas } from '../components/workspace/NotesCanvas'
+import { CopilotPanel } from '../components/workspace/CopilotPanel'
+import { CommentsPanel } from '../components/workspace/CommentsPanel'
 import type { WorkspaceTab, ApprovalStage } from '../types'
 import { dealsApi } from '../api'
 
@@ -24,9 +36,13 @@ export function OpportunityWorkspacePage() {
   const setGlobalSidebarCollapsed = useUIStore((s) => s.setGlobalSidebarCollapsed)
   const prevGlobalCollapsed = useRef(useUIStore.getState().globalSidebarCollapsed)
 
+  const canvasExportRef = useRef<(() => void) | null>(null)
   const [showCreateDoc, setShowCreateDoc] = useState(false)
   const [showValidation, setShowValidation] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [showCreateCanvas, setShowCreateCanvas] = useState(false)
+  const [rightPanel, setRightPanel] = useState<'none' | 'copilot' | 'comments'>('none')
+  const activeEditorRef = useRef<import('@tiptap/react').Editor | null>(null)
 
   useEffect(() => {
     if (oppId) {
@@ -117,6 +133,7 @@ export function OpportunityWorkspacePage() {
       <WorkspaceHeader
         opportunity={opp}
         activeDocument={activeDocument}
+        activeTabType={activeTab?.type}
         canUndo={activeTab?.type !== 'note' && canUndo}
         canRedo={activeTab?.type !== 'note' && canRedo}
         onUndo={handleUndo}
@@ -133,6 +150,7 @@ export function OpportunityWorkspacePage() {
             store.advanceApprovalStage(opp.approvalStage)
           }
         }}
+        onExportCanvas={() => canvasExportRef.current?.()}
       />
 
       {/* Review Banner */}
@@ -157,6 +175,27 @@ export function OpportunityWorkspacePage() {
         }}
       />
 
+      {/* Panel toggle buttons */}
+      <div className="flex items-center justify-end gap-1 border-b px-4 py-1.5 bg-muted/30">
+        <span className="text-xs text-muted-foreground mr-2">Panels:</span>
+        <Button
+          variant={rightPanel === 'copilot' ? 'default' : 'outline'}
+          size="sm"
+          className="h-6 px-2.5 text-xs gap-1"
+          onClick={() => setRightPanel(rightPanel === 'copilot' ? 'none' : 'copilot')}
+        >
+          AI Analyst
+        </Button>
+        <Button
+          variant={rightPanel === 'comments' ? 'default' : 'outline'}
+          size="sm"
+          className="h-6 px-2.5 text-xs gap-1"
+          onClick={() => setRightPanel(rightPanel === 'comments' ? 'none' : 'comments')}
+        >
+          Comments
+        </Button>
+      </div>
+
       {/* Body: Sidebar + Main Content — sidebar and tabs are sticky, only content scrolls */}
       <div className="flex-1 flex overflow-hidden">
         {/* Workspace sidebar — never scrolls (has its own internal ScrollArea) */}
@@ -167,6 +206,7 @@ export function OpportunityWorkspacePage() {
           activeTabId={store.activeTabId}
           onOpenTab={(tab: WorkspaceTab) => store.openTab(tab)}
           onCreateDocument={() => setShowCreateDoc(true)}
+          onCreateCanvas={() => setShowCreateCanvas(true)}
           onUploadFile={(file: File) => store.uploadSourceFile(opp.id, file)}
           uploadingFile={store.uploadingFile}
           onToggle={() => store.toggleSidebar()}
@@ -196,12 +236,11 @@ export function OpportunityWorkspacePage() {
                 document={activeDocument}
                 opportunityId={opp.id}
                 onUpdate={(doc) => store.updateWorkspaceDocument(doc)}
+                onEditorReady={(ed) => { activeEditorRef.current = ed }}
               />
             )}
             {activeTab?.type === 'note' && (
-              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                Canvas notes coming soon
-              </div>
+              <NotesCanvas key={activeTab.id} documentId={activeTab.documentId} exportRef={canvasExportRef} />
             )}
             {activeTab?.type === 'source_file' && activeSourceFile && (
               <SourceFileViewer sourceFile={activeSourceFile} />
@@ -213,9 +252,38 @@ export function OpportunityWorkspacePage() {
             )}
           </div>
         </div>
+
+        {/* Right panel: Copilot or Comments */}
+        {rightPanel === 'copilot' && (
+          <div className="w-80 shrink-0">
+            <CopilotPanel
+              opportunityName={opp.name}
+              editor={activeEditorRef.current}
+              onApplyText={(text, pos) => {
+                const ed = activeEditorRef.current
+                if (!ed) return
+                ed.chain().focus().insertContentAt(pos, text).run()
+              }}
+            />
+          </div>
+        )}
+        {rightPanel === 'comments' && (
+          <div className="w-80 shrink-0">
+            <CommentsPanel opportunityId={opp.id} />
+          </div>
+        )}
       </div>
 
       {/* Dialogs */}
+      <CreateCanvasDialog
+        open={showCreateCanvas}
+        onClose={() => setShowCreateCanvas(false)}
+        onCreate={async (name) => {
+          const doc = await dealsApi.createDocument(opp.id, { name, documentType: 'note' })
+          store.addWorkspaceDocument(doc)
+          setShowCreateCanvas(false)
+        }}
+      />
       {showCreateDoc && (
         <CreateDocumentDialog
           opportunityId={opp.id}
@@ -246,5 +314,56 @@ export function OpportunityWorkspacePage() {
         />
       )}
     </div>
+  )
+}
+
+function CreateCanvasDialog({
+  open,
+  onClose,
+  onCreate,
+}: {
+  open: boolean
+  onClose: () => void
+  onCreate: (name: string) => Promise<void>
+}) {
+  const [name, setName] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) return
+    setLoading(true)
+    try {
+      await onCreate(name.trim())
+      setName('')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { setName(''); onClose() } }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>New Canvas</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+          <Input
+            autoFocus
+            placeholder="Canvas name..."
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!name.trim() || loading}>
+              {loading ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

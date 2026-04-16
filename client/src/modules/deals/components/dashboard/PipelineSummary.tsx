@@ -10,6 +10,7 @@ interface PipelineSummaryProps {
 const STATUS_CONFIG: Record<string, { label: string; subtitle: string; accent: string }> = {
   new: { label: 'New', subtitle: 'new opportunities', accent: 'text-blue-600 dark:text-blue-400' },
   active: { label: 'Active', subtitle: 'in progress', accent: 'text-emerald-600 dark:text-emerald-400' },
+  processing: { label: 'Processing', subtitle: 'being processed', accent: 'text-amber-600 dark:text-amber-400' },
   archived: { label: 'Archived', subtitle: 'archived', accent: 'text-slate-600 dark:text-slate-400' },
   ignored: { label: 'Ignored', subtitle: 'passed', accent: 'text-red-600 dark:text-red-400' },
 }
