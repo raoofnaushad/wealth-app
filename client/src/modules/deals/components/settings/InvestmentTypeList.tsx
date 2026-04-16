@@ -5,11 +5,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { SnapshotFieldEditor } from './SnapshotFieldEditor'
 import { useDealsStore } from '../../store'
+import { useAuthStore } from '@/store/useAuthStore'
 import type { InvestmentType } from '../../types'
 
 export function InvestmentTypeList() {
   const { investmentTypes, fetchInvestmentTypes } = useDealsStore()
   const [editing, setEditing] = useState<InvestmentType | null>(null)
+  const role = useAuthStore((s) => s.getModuleRole('deals'))
+  const isOwner = role === 'owner'
 
   if (editing) {
     return (
@@ -30,10 +33,12 @@ export function InvestmentTypeList() {
         <p className="text-sm text-muted-foreground">
           Configure snapshot fields for each investment type.
         </p>
-        <Button variant="outline" className="gap-1.5">
-          <Plus className="size-4" />
-          Add Investment Type
-        </Button>
+        {isOwner && (
+          <Button variant="outline" className="gap-1.5">
+            <Plus className="size-4" />
+            Add Investment Type
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -47,8 +52,8 @@ export function InvestmentTypeList() {
           return (
             <Card
               key={type.id}
-              className="cursor-pointer transition-colors hover:border-primary/40"
-              onClick={() => setEditing(type)}
+              className={isOwner ? 'cursor-pointer transition-colors hover:border-primary/40' : 'cursor-default'}
+              onClick={() => isOwner && setEditing(type)}
             >
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">

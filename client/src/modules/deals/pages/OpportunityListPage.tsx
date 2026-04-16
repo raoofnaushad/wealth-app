@@ -101,7 +101,13 @@ export function OpportunityListPage() {
           Loading opportunities...
         </div>
       ) : (
-        <OpportunityTable opportunities={opportunities} />
+        <OpportunityTable
+          opportunities={opportunities}
+          onDeleted={() => {
+            const filters = pipelineFilter ? { pipelineStatus: pipelineFilter } : undefined
+            fetchOpportunities(filters)
+          }}
+        />
       )}
     </div>
   )

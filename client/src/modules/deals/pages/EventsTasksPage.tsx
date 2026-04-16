@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/store/useAuthStore'
 import { dealsApi } from '../api'
 import type { DealEvent, DealTask, DealEventType, TaskPriority, TaskStatus, GoogleCalendarAccount } from '../types'
 
@@ -33,6 +34,9 @@ export function EventsTasksPage() {
   const [tasks, setTasks] = useState<DealTask[]>([])
   const [calendarAccounts, setCalendarAccounts] = useState<GoogleCalendarAccount[]>([])
   const [loading, setLoading] = useState(true)
+  const role = useAuthStore((s) => s.getModuleRole('deals'))
+  const userId = useAuthStore((s) => s.user?.id)
+  const isAnalyst = role === 'analyst'
 
   useEffect(() => {
     Promise.all([
@@ -41,10 +45,14 @@ export function EventsTasksPage() {
       dealsApi.listCalendarAccounts(),
     ]).then(([ev, tk, cal]) => {
       setEvents(ev)
-      setTasks(tk)
+      // Analysts only see tasks assigned to them or created by them
+      const filteredTasks = isAnalyst && userId
+        ? tk.filter((t) => t.assigneeId === userId || t.createdBy === userId)
+        : tk
+      setTasks(filteredTasks)
       setCalendarAccounts(cal)
     }).finally(() => setLoading(false))
-  }, [])
+  }, [isAnalyst, userId])
 
   if (loading) {
     return (

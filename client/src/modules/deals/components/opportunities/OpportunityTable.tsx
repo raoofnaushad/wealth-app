@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Trash2 } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -6,7 +8,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/store/useAuthStore'
+import { dealsApi } from '../../api'
+import { toast } from 'sonner'
 import type { Opportunity, ApprovalStage } from '../../types'
 import { PipelineStatusBadge } from './PipelineStatusBadge'
 import { FitScoreBadge } from './FitScoreBadge'
@@ -14,6 +20,7 @@ import { ProcessingStatusBadge } from './ProcessingStatusBadge'
 
 interface OpportunityTableProps {
   opportunities: Opportunity[]
+  onDeleted?: (id: string) => void
 }
 
 const STAGE_CONFIG: Record<ApprovalStage, { label: string; className: string }> = {
@@ -31,8 +38,25 @@ const STRATEGY_FIT_CONFIG: Record<string, { label: string; className: string }> 
   limited: { label: 'Limited', className: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' },
 }
 
-export function OpportunityTable({ opportunities }: OpportunityTableProps) {
+export function OpportunityTable({ opportunities, onDeleted }: OpportunityTableProps) {
   const navigate = useNavigate()
+  const role = useAuthStore((s) => s.getModuleRole('deals'))
+  const isOwner = role === 'owner'
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  async function handleDelete(e: React.MouseEvent, id: string) {
+    e.stopPropagation()
+    setDeletingId(id)
+    try {
+      await dealsApi.deleteOpportunity(id)
+      toast.success('Opportunity deleted.')
+      onDeleted?.(id)
+    } catch {
+      toast.error('Failed to delete opportunity.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   if (opportunities.length === 0) {
     return (
@@ -56,6 +80,7 @@ export function OpportunityTable({ opportunities }: OpportunityTableProps) {
               <th className="px-4 py-3 font-medium">Strategy Fit</th>
               <th className="px-4 py-3 font-medium">Mandate Fit</th>
               <th className="px-4 py-3 font-medium">Date</th>
+              {isOwner && <th className="px-4 py-3 font-medium w-12" />}
             </tr>
           </thead>
           <tbody>
@@ -120,6 +145,19 @@ export function OpportunityTable({ opportunities }: OpportunityTableProps) {
                   <td className="px-4 py-3 text-muted-foreground">
                     {new Date(opp.createdAt).toLocaleDateString()}
                   </td>
+                  {isOwner && (
+                    <td className="px-2 py-3">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        disabled={deletingId === opp.id}
+                        onClick={(e) => handleDelete(e, opp.id)}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </td>
+                  )}
                 </tr>
               )
             })}

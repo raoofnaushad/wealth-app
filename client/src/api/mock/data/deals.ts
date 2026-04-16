@@ -523,7 +523,7 @@ export const MOCK_NEWS_ITEMS: NewsItem[] = [
   },
   {
     id: 'news-2',
-    headline: 'Global PE Fundraising Hits $600B in Q1 2026',
+    headline: 'Global PE Fundraising Hits Record $600B in Q1 2026',
     summary: 'Private equity fundraising reached record levels in the first quarter, driven by strong demand for growth equity and buyout strategies.',
     fullContent: null,
     category: 'market',

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Loader2, Mail, HardDrive, Calendar, Trash2 } from 'lucide-react'
+import { Loader2, Mail, HardDrive, Calendar, Trash2, Lock } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -7,11 +7,23 @@ import { Button } from '@/components/ui/button'
 import { InvestmentTypeList } from '../components/settings/InvestmentTypeList'
 import { TemplateList } from '../components/settings/TemplateList'
 import { useDealsStore } from '../store'
+import { useAuthStore } from '@/store/useAuthStore'
 import { dealsApi } from '../api'
 import type { EmailAccount, GoogleDriveAccount, GoogleCalendarAccount } from '../types'
 
 export function SettingsPage() {
   const { fetchInvestmentTypes, fetchTemplates } = useDealsStore()
+  const role = useAuthStore((s) => s.getModuleRole('deals'))
+
+  if (role === 'analyst') {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+        <Lock className="size-10 text-muted-foreground/50" />
+        <p className="font-medium">Access Restricted</p>
+        <p className="text-sm text-muted-foreground">Settings are only accessible to Managers and Owners.</p>
+      </div>
+    )
+  }
 
   useEffect(() => {
     fetchInvestmentTypes()

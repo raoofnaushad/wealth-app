@@ -109,14 +109,25 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     ) : link
   }
 
+  const dealsRole = useAuthStore((s) => s.getModuleRole('deals'))
+  const isDealsOwnerOrManager = dealsRole === 'owner' || dealsRole === 'manager'
+
   // ── Module View ──────────────────────────────────────────────────
   if (activeModule) {
     const ModuleIcon = activeModule.icon
-    const moduleNavItems: NavItem[] = activeModule.navItems.map((item) => ({
-      icon: item.icon,
-      label: item.label,
-      path: item.path,
-    }))
+    const moduleNavItems: NavItem[] = activeModule.navItems
+      .filter((item) => {
+        // Settings is owner/manager only in the Deals module
+        if (activeModule.slug === 'deals' && item.path === '/home/deals/settings') {
+          return isDealsOwnerOrManager
+        }
+        return true
+      })
+      .map((item) => ({
+        icon: item.icon,
+        label: item.label,
+        path: item.path,
+      }))
 
     return (
       <aside className={cn('border-r border-border bg-sidebar flex flex-col shrink-0 transition-all duration-200', collapsed ? 'w-14' : 'w-56')}>

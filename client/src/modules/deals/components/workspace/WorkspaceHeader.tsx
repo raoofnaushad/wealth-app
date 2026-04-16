@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { downloadAsPDF, downloadAsDocx } from './downloadDocument'
+import { useAuthStore } from '@/store/useAuthStore'
 
 import type { ApprovalStage, Opportunity, Document } from '../../types'
 
@@ -116,6 +117,8 @@ export function WorkspaceHeader({
   const isCanvas = activeTabType === 'note'
   const hasDoc = activeDocument !== null || isCanvas
   const [isDownloading, setIsDownloading] = useState(false)
+  const role = useAuthStore((s) => s.getModuleRole('deals'))
+  const canChangeStage = role === 'owner' || role === 'manager'
 
   async function handleDownloadPDF() {
     if (!activeDocument) return
@@ -155,11 +158,15 @@ export function WorkspaceHeader({
 
       <DropdownMenu>
         <DropdownMenuTrigger
-          className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium cursor-pointer hover:bg-accent transition-colors"
+          disabled={!canChangeStage}
+          className={cn(
+            'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium transition-colors',
+            canChangeStage ? 'cursor-pointer hover:bg-accent' : 'opacity-60 cursor-not-allowed',
+          )}
         >
           <span className={cn('h-2 w-2 rounded-full', stageColors[opportunity.approvalStage])} />
           {stageLabels[opportunity.approvalStage]}
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+          {canChangeStage && <ChevronDown className="h-3 w-3 text-muted-foreground" />}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground tracking-wide">

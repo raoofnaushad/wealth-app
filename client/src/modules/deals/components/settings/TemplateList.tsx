@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select'
 import { PromptEditor } from './PromptEditor'
 import { useDealsStore } from '../../store'
+import { useAuthStore } from '@/store/useAuthStore'
 import { dealsApi } from '../../api'
 import type { DocumentTemplate } from '../../types'
 
@@ -29,6 +30,8 @@ export function TemplateList() {
   const [editing, setEditing] = useState<DocumentTemplate | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const role = useAuthStore((s) => s.getModuleRole('deals'))
+  const isOwner = role === 'owner'
 
   async function handleDelete(id: string) {
     setDeletingId(id)
@@ -68,10 +71,12 @@ export function TemplateList() {
         <p className="text-sm text-muted-foreground">
           Edit prompt templates used for AI-generated deal documents.
         </p>
-        <Button size="sm" onClick={() => setShowCreate(true)} className="gap-1.5">
-          <Plus className="size-3.5" />
-          New Template
-        </Button>
+        {isOwner && (
+          <Button size="sm" onClick={() => setShowCreate(true)} className="gap-1.5">
+            <Plus className="size-3.5" />
+            New Template
+          </Button>
+        )}
       </div>
 
       {Object.entries(grouped).map(([typeName, groupTemplates]) => (
@@ -100,7 +105,7 @@ export function TemplateList() {
                       <Badge variant={tpl.isSystem ? 'secondary' : 'outline'}>
                         {tpl.isSystem ? 'System' : 'Custom'}
                       </Badge>
-                      {!tpl.isSystem && (
+                      {!tpl.isSystem && isOwner && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -129,7 +134,7 @@ export function TemplateList() {
         </p>
       )}
 
-      {showCreate && (
+      {showCreate && isOwner && (
         <CreateTemplateDialog
           investmentTypes={investmentTypes.map(t => ({ id: t.id, name: t.name }))}
           onClose={() => setShowCreate(false)}
