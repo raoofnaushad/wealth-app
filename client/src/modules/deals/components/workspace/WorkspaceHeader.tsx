@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   ArrowLeft,
   Bell,
@@ -8,7 +7,6 @@ import {
   ClipboardCheck,
   Download,
   FileCheck,
-  Loader2,
   Redo2,
   Search,
   Share2,
@@ -33,14 +31,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { downloadAsPDF, downloadAsDocx } from './downloadDocument'
-import { useAuthStore } from '@/store/useAuthStore'
 
 import type { ApprovalStage, Opportunity, Document } from '../../types'
 
 interface WorkspaceHeaderProps {
   opportunity: Opportunity
   activeDocument: Document | null
-  activeTabType?: string
   canUndo: boolean
   canRedo: boolean
   onUndo: () => void
@@ -49,7 +45,6 @@ interface WorkspaceHeaderProps {
   onValidate: () => void
   onShare: () => void
   onStageChange: (stage: ApprovalStage) => void
-  onExportCanvas?: () => void
 }
 
 const stageColors: Record<string, string> = {
@@ -103,7 +98,6 @@ function capitalize(value: string): string {
 export function WorkspaceHeader({
   opportunity,
   activeDocument,
-  activeTabType,
   canUndo,
   canRedo,
   onUndo,
@@ -112,29 +106,8 @@ export function WorkspaceHeader({
   onValidate,
   onShare,
   onStageChange,
-  onExportCanvas,
 }: WorkspaceHeaderProps) {
-  const isCanvas = activeTabType === 'note'
-  const hasDoc = activeDocument !== null || isCanvas
-  const [isDownloading, setIsDownloading] = useState(false)
-  const role = useAuthStore((s) => s.getModuleRole('deals'))
-  const canChangeStage = role === 'owner' || role === 'manager'
-
-  async function handleDownloadPDF() {
-    if (!activeDocument) return
-    setIsDownloading(true)
-    try { await downloadAsPDF(activeDocument, opportunity.name) }
-    catch (e) { console.error('PDF export failed', e) }
-    finally { setIsDownloading(false) }
-  }
-
-  async function handleDownloadDocx() {
-    if (!activeDocument) return
-    setIsDownloading(true)
-    try { await downloadAsDocx(activeDocument, opportunity.name) }
-    catch (e) { console.error('DOCX export failed', e) }
-    finally { setIsDownloading(false) }
-  }
+  const hasDoc = activeDocument !== null
 
   return (
     <div className="flex items-center gap-3 px-4 py-2 border-b shrink-0 bg-background">
@@ -158,15 +131,11 @@ export function WorkspaceHeader({
 
       <DropdownMenu>
         <DropdownMenuTrigger
-          disabled={!canChangeStage}
-          className={cn(
-            'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium transition-colors',
-            canChangeStage ? 'cursor-pointer hover:bg-accent' : 'opacity-60 cursor-not-allowed',
-          )}
+          className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium cursor-pointer hover:bg-accent transition-colors"
         >
           <span className={cn('h-2 w-2 rounded-full', stageColors[opportunity.approvalStage])} />
           {stageLabels[opportunity.approvalStage]}
-          {canChangeStage && <ChevronDown className="h-3 w-3 text-muted-foreground" />}
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground tracking-wide">
@@ -305,41 +274,41 @@ export function WorkspaceHeader({
           <TooltipContent>Share</TooltipContent>
         </Tooltip>
 
-        {isCanvas ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            title="Export as PNG"
-            onClick={onExportCanvas}
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-        ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              title="Download"
-              className={cn(
-                'inline-flex items-center justify-center rounded-md h-8 w-8 transition-colors',
-                hasDoc && !isDownloading
-                  ? 'hover:bg-accent hover:text-accent-foreground cursor-pointer text-foreground'
-                  : 'opacity-50 pointer-events-none text-muted-foreground',
-              )}
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <DropdownMenuTrigger
+                  className={cn(
+                    'inline-flex items-center justify-center rounded-md h-8 w-8 transition-colors',
+                    hasDoc
+                      ? 'hover:bg-accent hover:text-accent-foreground cursor-pointer text-foreground'
+                      : 'opacity-50 pointer-events-none text-muted-foreground',
+                  )}
+                >
+                  <Download className="h-4 w-4" />
+                </DropdownMenuTrigger>
+              }
+            />
+            <TooltipContent>Download</TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => {
+                if (activeDocument) downloadAsPDF(activeDocument, opportunity.name)
+              }}
             >
-              {isDownloading
-                ? <Loader2 className="h-4 w-4 animate-spin" />
-                : <Download className="h-4 w-4" />}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleDownloadPDF}>
-                Download as PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDownloadDocx}>
-                Download as Word (.docx)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+              Download as PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                if (activeDocument) downloadAsDocx(activeDocument, opportunity.name)
+              }}
+            >
+              Download as Word (.docx)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <Tooltip>
           <TooltipTrigger

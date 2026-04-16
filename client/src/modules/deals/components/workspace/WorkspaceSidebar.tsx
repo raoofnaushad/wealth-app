@@ -13,7 +13,6 @@ interface WorkspaceSidebarProps {
   activeTabId: string | null
   onOpenTab: (tab: WorkspaceTab) => void
   onCreateDocument: () => void
-  onCreateCanvas: () => void
   onUploadFile: (file: File) => void
   uploadingFile: boolean
   onToggle: () => void
@@ -32,14 +31,12 @@ export function WorkspaceSidebar({
   activeTabId,
   onOpenTab,
   onCreateDocument,
-  onCreateCanvas,
   onUploadFile,
   uploadingFile,
   onToggle,
 }: WorkspaceSidebarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const deliverables = documents.filter(d => d.documentType !== 'note')
-  const canvases = documents.filter(d => d.documentType === 'note')
 
   if (collapsed) {
     return (
@@ -61,12 +58,8 @@ export function WorkspaceSidebar({
             )}
           </button>
           <button
-            className="relative flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            title="Notes"
-            onClick={() => {
-              onToggle()
-              onOpenTab({ id: 'notes-canvas', type: 'note', label: 'Notes', closeable: true })
-            }}
+            className="relative flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground/50 cursor-default"
+            title="Notes — Coming soon"
           >
             <StickyNote className="h-4 w-4" />
           </button>
@@ -123,28 +116,13 @@ export function WorkspaceSidebar({
           ))}
         </ul>
 
-        {/* Notes / Canvases */}
-        <SectionHeader label="Notes" count={canvases.length} onAdd={onCreateCanvas} />
-        <ul className="mb-4 space-y-0.5">
-          {canvases.map(doc => (
-            <SidebarItem
-              key={doc.id}
-              active={activeTabId === doc.id}
-              onClick={() =>
-                onOpenTab({
-                  id: doc.id,
-                  type: 'note',
-                  label: doc.name,
-                  documentId: doc.id,
-                  closeable: true,
-                })
-              }
-            >
-              <StickyNote className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="flex-1 truncate text-sm">{doc.name}</span>
-            </SidebarItem>
-          ))}
-        </ul>
+        {/* Notes — Coming Soon */}
+        <div className="flex items-center justify-between px-2 py-1.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Notes
+          </span>
+          <span className="text-[10px] text-muted-foreground italic">Coming soon</span>
+        </div>
 
         {/* Source Documents */}
         <input

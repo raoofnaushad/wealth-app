@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -40,7 +39,7 @@ const roleLabels: Record<string, string> = {
 export function ShareDialog({ documentId, documentName, onClose }: ShareDialogProps) {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(true)
-  const [selectedUsers, setSelectedUsers] = useState<Map<string, 'read' | 'read_write'>>(new Map())
+  const [selectedUsers, setSelectedUsers] = useState<Map<string, 'view' | 'comment' | 'edit'>>(new Map())
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -65,13 +64,13 @@ export function ShareDialog({ documentId, documentName, onClose }: ShareDialogPr
       if (next.has(memberId)) {
         next.delete(memberId)
       } else {
-        next.set(memberId, 'read')
+        next.set(memberId, 'view')
       }
       return next
     })
   }
 
-  function handlePermissionChange(memberId: string, permission: 'read' | 'read_write') {
+  function handlePermissionChange(memberId: string, permission: 'view' | 'comment' | 'edit') {
     setSelectedUsers((prev) => {
       const next = new Map(prev)
       next.set(memberId, permission)
@@ -98,11 +97,9 @@ export function ShareDialog({ documentId, documentName, onClose }: ShareDialogPr
         )
       )
 
-      const count = selectedUsers.size
       onClose()
-      toast.success(`Shared with ${count} ${count === 1 ? 'member' : 'members'}`)
     } catch {
-      toast.error('Failed to share document.')
+      // Error handling will be improved when toast notifications are added
     } finally {
       setSubmitting(false)
     }
@@ -134,7 +131,7 @@ export function ShareDialog({ documentId, documentName, onClose }: ShareDialogPr
             ) : (
               teamMembers.map((member) => {
                 const isSelected = selectedUsers.has(member.id)
-                const permission = selectedUsers.get(member.id) ?? 'read'
+                const permission = selectedUsers.get(member.id) ?? 'view'
 
                 return (
                   <div
@@ -159,14 +156,15 @@ export function ShareDialog({ documentId, documentName, onClose }: ShareDialogPr
                     {isSelected && (
                       <Select
                         value={permission}
-                        onValueChange={(val) => handlePermissionChange(member.id, val as 'read' | 'read_write')}
+                        onValueChange={(val) => handlePermissionChange(member.id, val as 'view' | 'comment' | 'edit')}
                       >
                         <SelectTrigger className="w-28 h-7 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="read">Read</SelectItem>
-                          <SelectItem value="read_write">Read & Write</SelectItem>
+                          <SelectItem value="view">View only</SelectItem>
+                          <SelectItem value="comment">Can comment</SelectItem>
+                          <SelectItem value="edit">Can edit</SelectItem>
                         </SelectContent>
                       </Select>
                     )}

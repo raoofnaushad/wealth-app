@@ -14,7 +14,7 @@ export type SnapshotFieldType =
 export interface SnapshotField {
   name: string
   type: SnapshotFieldType
-  description: string
+  required: boolean
   instruction: string
   options?: string[]
 }
@@ -85,7 +85,7 @@ export interface Mandate {
 
 // ── Opportunities ──
 
-export type PipelineStatus = 'new' | 'active' | 'archived' | 'ignored' | 'processing'
+export type PipelineStatus = 'new' | 'active' | 'archived' | 'ignored'
 
 export type ApprovalStage = 'new' | 'pre_screening' | 'due_diligence' | 'ic_review' | 'approved' | 'rejected'
 
@@ -234,7 +234,7 @@ export interface DocumentShare {
   documentId: string
   sharedWith: string
   sharedBy: string
-  permission: 'read' | 'read_write'
+  permission: 'comment' | 'view'
   createdAt: string
 }
 
@@ -344,104 +344,4 @@ export interface WorkspaceTab {
   label: string
   documentId?: string
   closeable?: boolean
-}
-
-// ── Events ─────────────────────────────────────────────────────────
-
-export type DealEventType = 'meeting' | 'call' | 'site_visit' | 'deadline' | 'other'
-
-export interface DealEvent {
-  id: string
-  title: string
-  type: DealEventType
-  description: string | null
-  opportunityId: string | null
-  mandateId: string | null
-  startTime: string
-  endTime: string | null
-  location: string | null
-  attendees: string[]
-  calendarEventId: string | null
-  createdBy: string
-  createdAt: string
-  updatedAt: string
-}
-
-// ── Tasks ──────────────────────────────────────────────────────────
-
-export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
-export type TaskStatus = 'todo' | 'in_progress' | 'done'
-
-export interface DealTask {
-  id: string
-  title: string
-  description: string | null
-  priority: TaskPriority
-  status: TaskStatus
-  assigneeId: string | null
-  assigneeName: string | null
-  opportunityId: string | null
-  mandateId: string | null
-  dueDate: string | null
-  completedAt: string | null
-  createdBy: string
-  createdAt: string
-  updatedAt: string
-}
-
-// ── Notifications ──────────────────────────────────────────────────
-
-export type NotificationType =
-  | 'opportunity_created'
-  | 'opportunity_assigned'
-  | 'stage_changed'
-  | 'document_shared'
-  | 'review_requested'
-  | 'review_completed'
-  | 'approval_requested'
-  | 'approval_decision'
-  | 'comment_added'
-  | 'task_assigned'
-  | 'task_due_soon'
-  | 'email_imported'
-  | 'mandate_match'
-
-export interface DealNotification {
-  id: string
-  type: NotificationType
-  title: string
-  message: string
-  read: boolean
-  linkTo: string | null
-  entityId: string | null
-  entityType: string | null
-  createdAt: string
-}
-
-// ── Google Calendar ────────────────────────────────────────────────
-
-export interface GoogleCalendarAccount {
-  id: string
-  userId: string
-  emailAddress: string
-  status: 'connected' | 'syncing' | 'error' | 'disconnected'
-  lastSyncedAt: string | null
-  calendarId: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-// ── Document Comments ──────────────────────────────────────────────
-
-export interface DocumentComment {
-  id: string
-  opportunityId: string
-  documentId: string | null
-  sectionHeading: string | null
-  content: string
-  authorId: string
-  authorName: string
-  parentId: string | null
-  createdAt: string
-  updatedAt: string
 }
