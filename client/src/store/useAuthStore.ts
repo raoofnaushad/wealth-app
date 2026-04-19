@@ -5,8 +5,6 @@ import {
   login as platformLogin,
   decodeJwt,
   getAccessToken,
-  getRefreshToken,
-  setTokens,
   clearTokens,
   refreshTokens,
   isTokenExpired,

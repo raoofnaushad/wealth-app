@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { format, addDays } from 'date-fns'
 import { Clock, CheckCircle2, Loader, Newspaper, Heart } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
-import { useChatStore } from '@/store/useChatStore'
 import { summariesApi } from '@/api/endpoints'
 import { LoadingScreen } from '@/components/shared/LoadingScreen'
 import { RelationshipPool } from '@/components/insights/RelationshipPool'
@@ -12,20 +11,16 @@ import { ActionItems } from '@/components/insights/ActionItems'
 import { Meetings } from '@/components/insights/Meetings'
 import { PersonalTouch } from '@/components/insights/PersonalTouch'
 import { ActionModal } from '@/components/insights/ActionModal'
-import type { DailySummary } from '@/api/types'
-import { ChatContext } from '@/api/types'
-import type { ActionModalContext, ActionModalType } from '@/api/types'
+import type { DailySummary, ActionModalContext, ActionModalType } from '@/api/types'
 
 export function DashboardPage() {
   const { user } = useAuthStore()
-  const setContext = useChatStore((s) => s.setContext)
   const [summaries, setSummaries] = useState<DailySummary[]>([])
   const [loading, setLoading] = useState(true)
   const [actionModal, setActionModal] = useState<ActionModalContext>({ type: null })
 
   useEffect(() => {
     let cancelled = false
-    setContext(ChatContext.DAILY_SUMMARY)
     setLoading(true)
     summariesApi.list()
       .then((data) => {
@@ -39,9 +34,8 @@ export function DashboardPage() {
       })
     return () => {
       cancelled = true
-      setContext(ChatContext.DEFAULT)
     }
-  }, [setContext])
+  }, [])
 
   if (loading) {
     return <LoadingScreen message="Loading your daily brief..." fullScreen={false} />

@@ -4,7 +4,6 @@ import type {
   ToolCallStep,
   CopilotRunResponse,
   LLMConfig,
-  CopilotSource,
 } from '@/api/types'
 import { askCopilot } from '@/api/copilot-client'
 

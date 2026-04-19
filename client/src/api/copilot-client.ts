@@ -11,12 +11,14 @@ const TERMINAL_STATUSES: RunStatus[] = ['complete', 'failed', 'cancelled']
 const COPILOT_URL = import.meta.env.VITE_COPILOT_API_URL || '/api'
 
 class CopilotError extends Error {
+  status: number
   constructor(
-    public status: number,
+    status: number,
     message: string,
   ) {
     super(message)
     this.name = 'CopilotError'
+    this.status = status
   }
 }
 

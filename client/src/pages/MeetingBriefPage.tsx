@@ -5,11 +5,9 @@ import { ComposedChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from '
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useAuthStore } from '@/store/useAuthStore'
-import { useChatStore } from '@/store/useChatStore'
 import { meetingBriefsApi } from '@/api/endpoints'
 import { LoadingScreen } from '@/components/shared/LoadingScreen'
 import type { MeetingBrief, CapitalFlowNotice, DailySummaryPersonalItem } from '@/api/types'
-import { ChatContext } from '@/api/types'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 
@@ -318,20 +316,17 @@ function MeetingMinutesModal({
 export function MeetingBriefPage() {
   const { meetingId } = useParams<{ meetingId: string }>()
   const { user } = useAuthStore()
-  const setContext = useChatStore((s) => s.setContext)
   const [brief, setBrief] = useState<MeetingBrief | null>(null)
   const [loading, setLoading] = useState(true)
   const [minutesOpen, setMinutesOpen] = useState(false)
 
   useEffect(() => {
     if (!meetingId) return
-    setContext(ChatContext.MEETING_BRIEF, { meetingId })
     meetingBriefsApi.get(meetingId).then((data) => {
       setBrief(data)
       setLoading(false)
     })
-    return () => setContext(ChatContext.DEFAULT)
-  }, [meetingId, setContext])
+  }, [meetingId])
 
   if (loading || !brief) {
     return <LoadingScreen message="Loading meeting brief..." fullScreen={false} />
