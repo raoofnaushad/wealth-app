@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { User, Brain, ChevronDown, ChevronRight, Loader2, CheckCircle2, Database, Search, Globe, Wrench } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import type { ChatMessage as ChatMessageType, ToolCallStep } from '@/api/types'
+import type { ChatMessage as ChatMessageType, ToolCallStep, CopilotSource } from '@/api/types'
 import { InvictusLogo } from '@/components/shared/InvictusLogo'
 
 interface ChatMessageProps {
@@ -64,6 +64,33 @@ function ToolCallRow({ toolCall }: { toolCall: ToolCallStep }) {
           <p className="text-[10px] text-muted-foreground leading-relaxed">{toolCall.result}</p>
         </div>
       )}
+    </div>
+  )
+}
+
+function SourceCitation({ sources }: { sources: CopilotSource[] }) {
+  if (sources.length === 0) return null
+
+  return (
+    <div className="border-t border-border/30 mt-2 pt-2">
+      <p className="text-[10px] font-medium text-muted-foreground mb-1">Sources</p>
+      <div className="space-y-1">
+        {sources.map((source, idx) => (
+          <div key={idx} className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
+            <span className="shrink-0">
+              {source.type === 'document' ? '📄' : source.type === 'crm' ? '📊' : source.type === 'web' ? '🌐' : '🔧'}
+            </span>
+            <span>
+              {source.type === 'document' && source.doc_id
+                ? `${source.doc_id}${source.page_numbers?.length ? ` — p.${source.page_numbers.join(', ')}` : ''}${source.excerpt ? ` — "${source.excerpt}"` : ''}`
+                : source.type === 'crm'
+                  ? `${source.tool}${source.data ? ` — ${JSON.stringify(source.data)}` : ''}`
+                  : source.tool
+              }
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -295,6 +322,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
               <MarkdownContent content={message.content} />
             )}
           </div>
+        )}
+
+        {/* Source citations */}
+        {!isUser && message.sources && message.sources.length > 0 && (
+          <SourceCitation sources={message.sources} />
         )}
 
         <p className={cn('text-[10px] text-muted-foreground', isUser ? 'text-right' : 'text-left')}>
