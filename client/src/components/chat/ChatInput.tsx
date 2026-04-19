@@ -11,37 +11,44 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import type { LLMConfig } from '@/api/types'
 
-const COPILOT_MODELS = [
+interface ModelOption {
+  id: string
+  label: string
+  provider: string
+  llmConfig: LLMConfig
+}
+
+const COPILOT_MODELS: { group: string; models: ModelOption[] }[] = [
   { group: 'Anthropic', models: [
-    { id: 'claude-haiku-4-5-20251001', label: 'Claude 4.5 Haiku', provider: 'Anthropic' },
-    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', provider: 'Anthropic' },
-    { id: 'claude-opus-4-6', label: 'Claude Opus 4.6', provider: 'Anthropic' },
+    { id: 'claude-haiku', label: 'Claude 4.5 Haiku', provider: 'Anthropic', llmConfig: { provider: 'anthropic', model: 'claude-haiku-4-5-20251001' } },
+    { id: 'claude-sonnet', label: 'Claude Sonnet 4.6', provider: 'Anthropic', llmConfig: { provider: 'anthropic', model: 'claude-sonnet-4-6' } },
+    { id: 'claude-opus', label: 'Claude Opus 4.6', provider: 'Anthropic', llmConfig: { provider: 'anthropic', model: 'claude-opus-4-6' } },
   ]},
   { group: 'Azure OpenAI', models: [
-    { id: 'azure:inv-aii-gpt40-useast2-dev', label: 'GPT-4o', provider: 'Azure OpenAI' },
-    { id: 'azure:inv-aii-gpt5chat-useast2-dev', label: 'GPT-5 Chat', provider: 'Azure OpenAI' },
+    { id: 'gpt4o', label: 'GPT-4o', provider: 'Azure OpenAI', llmConfig: { provider: 'azure_openai', model: 'inv-aii-gpt40-useast2-dev' } },
+    { id: 'gpt5', label: 'GPT-5 Chat', provider: 'Azure OpenAI', llmConfig: { provider: 'azure_openai', model: 'inv-aii-gpt5chat-useast2-dev' } },
   ]},
   { group: 'Open Source (OpenRouter)', models: [
-    { id: 'openrouter:deepseek/deepseek-v3.2', label: 'DeepSeek V3.2', provider: 'DeepSeek' },
-    { id: 'openrouter:google/gemma-4-26b-a4b-it', label: 'Gemma 4 26B', provider: 'Google' },
-    { id: 'openrouter:moonshotai/kimi-k2.5', label: 'Kimi K2.5', provider: 'Moonshot' },
+    { id: 'deepseek', label: 'DeepSeek V3.2', provider: 'DeepSeek', llmConfig: { provider: 'openrouter', model: 'deepseek/deepseek-v3.2' } },
+    { id: 'kimi', label: 'Kimi K2.5', provider: 'Moonshot', llmConfig: { provider: 'openrouter', model: 'moonshotai/kimi-k2.5' } },
   ]},
 ]
 
 const ALL_MODELS = COPILOT_MODELS.flatMap((g) => g.models)
 
 interface ChatInputProps {
-  onSend: (message: string, model?: string) => void
+  onSend: (message: string, llmConfig?: LLMConfig) => void
   disabled?: boolean
 }
 
 export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [value, setValue] = useState('')
-  const [selectedModel, setSelectedModel] = useState('claude-haiku-4-5-20251001')
+  const [selectedModelId, setSelectedModelId] = useState('claude-haiku')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const currentModel = ALL_MODELS.find((m) => m.id === selectedModel)
+  const currentModel = ALL_MODELS.find((m) => m.id === selectedModelId)
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -53,7 +60,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   function handleSubmit() {
     const trimmed = value.trim()
     if (!trimmed || disabled) return
-    onSend(trimmed, selectedModel)
+    onSend(trimmed, currentModel?.llmConfig)
     setValue('')
   }
 
@@ -85,7 +92,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
                   {group.models.map((model) => (
                     <DropdownMenuItem
                       key={model.id}
-                      onClick={() => setSelectedModel(model.id)}
+                      onClick={() => setSelectedModelId(model.id)}
                       className="flex items-center justify-between"
                     >
                       <span className="text-sm">{model.label}</span>
