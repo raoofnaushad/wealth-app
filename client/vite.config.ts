@@ -12,6 +12,12 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/platform-api': {
+        target: 'https://staging.asbitech.ai/esb/api/v1',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/platform-api/, ''),
+        secure: true,
+      },
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
