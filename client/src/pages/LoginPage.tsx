@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { InvictusLogo } from '@/components/shared/InvictusLogo'
 
 export function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
@@ -18,15 +18,15 @@ export function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email || !password) {
+    if (!username || !password) {
       setError('Please enter your credentials')
       return
     }
     try {
-      await login(email, password)
+      await login(username, password)
       navigate('/', { replace: true })
-    } catch {
-      setError('Invalid credentials')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed. Please try again.')
     }
   }
 
@@ -55,8 +55,8 @@ export function LoginPage() {
                 <Input
                   id="email"
                   type="text"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError('') }}
+                  value={username}
+                  onChange={(e) => { setUsername(e.target.value); setError('') }}
                   placeholder="Username"
                   className="h-10"
                 />
