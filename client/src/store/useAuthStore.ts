@@ -1,53 +1,57 @@
 import { create } from 'zustand'
 import type { ModuleRole, ModuleSlug } from '@/modules/admin/types'
+import type { ProfileResponse, CompanyResponse, JwtPayload } from '@/api/types'
+import {
+  login as platformLogin,
+  decodeJwt,
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+  clearTokens,
+  refreshTokens,
+  isTokenExpired,
+  getProfile,
+  getCompany,
+} from '@/api/platform-api'
 
-interface User {
-  id: string
-  name: string
+export interface User {
+  id: number
+  username: string
   email: string
-  initials: string
   firstName: string
   lastName: string
+  name: string
+  initials: string
+  companyId: number
+  companyName: string
+  role: number
+  capabilities: string[]
+  globalRoleId: number
+  timezone: string
+  language: string
+}
+
+export interface Company {
+  id: number
+  name: string
+  phone: string
+  defaultCurrencyId: number
+  defaultTimeZoneId: number
+  preferredLanguageId: number
 }
 
 interface AuthState {
   isAuthenticated: boolean
   user: User | null
-  tenantId: string
+  company: Company | null
   moduleRoles: Partial<Record<ModuleSlug, ModuleRole>>
   login: (username: string, password: string) => Promise<void>
   logout: () => void
   hasModuleAccess: (moduleSlug: ModuleSlug) => boolean
   getModuleRole: (moduleSlug: ModuleSlug) => ModuleRole | null
   isOrgAdmin: () => boolean
-}
-
-function deriveUser(input: string): User {
-  const trimmed = input.trim()
-  let nameParts: string[]
-  let email: string
-
-  if (trimmed.includes('@')) {
-    email = trimmed.toLowerCase()
-    const localPart = email.split('@')[0]
-    nameParts = localPart.split(/[._\-+]+/).filter(Boolean)
-  } else {
-    nameParts = trimmed.split(/\s+/).filter(Boolean)
-    email = `${nameParts.join('.').toLowerCase()}@asbitech.ai`
-  }
-
-  const firstName = nameParts[0]
-    ? nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase()
-    : ''
-  const lastName = nameParts.length >= 2
-    ? nameParts[nameParts.length - 1].charAt(0).toUpperCase() + nameParts[nameParts.length - 1].slice(1).toLowerCase()
-    : ''
-  const name = [firstName, lastName].filter(Boolean).join(' ')
-  const initials = nameParts.length >= 2
-    ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
-    : name.slice(0, 2).toUpperCase()
-
-  return { id: 'user-raoof', name, email, initials, firstName, lastName }
+  startRefreshTimer: () => void
+  stopRefreshTimer: () => void
 }
 
 const DEFAULT_MODULE_ROLES: Partial<Record<ModuleSlug, ModuleRole>> = {
@@ -57,81 +61,113 @@ const DEFAULT_MODULE_ROLES: Partial<Record<ModuleSlug, ModuleRole>> = {
   insights: 'analyst',
 }
 
-function loadStoredAuth(): { user: User | null; moduleRoles: Partial<Record<ModuleSlug, ModuleRole>> } {
-  const stored = localStorage.getItem('auth_user')
-  const storedRoles = localStorage.getItem('auth_module_roles')
+let refreshTimerId: ReturnType<typeof setInterval> | null = null
+
+function loadStoredAuth(): {
+  user: User | null
+  company: Company | null
+  moduleRoles: Partial<Record<ModuleSlug, ModuleRole>>
+} {
   let user: User | null = null
-  let moduleRoles = DEFAULT_MODULE_ROLES
+  let company: Company | null = null
+  const moduleRoles = DEFAULT_MODULE_ROLES
 
-  if (stored) {
-    try { user = JSON.parse(stored) as User } catch { /* ignore */ }
+  const storedUser = localStorage.getItem('auth_user')
+  const storedCompany = localStorage.getItem('auth_company')
+
+  if (storedUser) {
+    try { user = JSON.parse(storedUser) as User } catch { /* ignore */ }
   }
-  if (storedRoles) {
-    try { moduleRoles = JSON.parse(storedRoles) as Partial<Record<ModuleSlug, ModuleRole>> } catch { /* ignore */ }
+  if (storedCompany) {
+    try { company = JSON.parse(storedCompany) as Company } catch { /* ignore */ }
   }
 
-  return { user, moduleRoles }
+  return { user, company, moduleRoles }
+}
+
+function buildUserFromJwtAndProfile(
+  jwt: JwtPayload,
+  profile: ProfileResponse,
+  companyName: string,
+): User {
+  const firstName = profile.userProfileDto.userFirstName
+  const lastName = profile.userProfileDto.userLastName
+  const name = [firstName, lastName].filter(Boolean).join(' ')
+  const initials = firstName && lastName
+    ? `${firstName[0]}${lastName[0]}`.toUpperCase()
+    : name.slice(0, 2).toUpperCase()
+
+  return {
+    id: jwt.id,
+    username: jwt.sub,
+    email: profile.emailAddress,
+    firstName,
+    lastName,
+    name,
+    initials,
+    companyId: jwt.companyId,
+    companyName,
+    role: jwt.role,
+    capabilities: jwt.capabilities,
+    globalRoleId: profile.globalRoleId,
+    timezone: jwt.userTimezone,
+    language: jwt.userLanguage,
+  }
+}
+
+function buildCompany(res: CompanyResponse): Company {
+  return {
+    id: res.company.id,
+    name: res.company.name,
+    phone: res.company.phone,
+    defaultCurrencyId: res.company.defaultCurrencyId,
+    defaultTimeZoneId: res.company.defaultTimeZoneId,
+    preferredLanguageId: res.company.preferredLanguageId,
+  }
 }
 
 const initial = loadStoredAuth()
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  isAuthenticated: !!localStorage.getItem('auth_token'),
+  isAuthenticated: !!getAccessToken(),
   user: initial.user,
-  tenantId: 'tenant-watar',
+  company: initial.company,
   moduleRoles: initial.moduleRoles,
 
-  login: async (email: string, password: string) => {
-    if (import.meta.env.VITE_USE_REAL_API === 'true') {
-      const response = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      })
-      if (!response.ok) {
-        throw new Error('Invalid credentials')
-      }
-      const result = await response.json()
-      const token = result.data.access_token
-      localStorage.setItem('auth_token', token)
+  login: async (username: string, password: string) => {
+    const tokens = await platformLogin({ username, password })
+    const jwt = decodeJwt(tokens.access_token)
 
-      // Decode JWT payload to get user info
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      const user = {
-        id: payload.sub,
-        name: `${payload.first_name} ${payload.last_name}`,
-        email: payload.email,
-        initials: `${payload.first_name[0]}${payload.last_name[0]}`.toUpperCase(),
-        firstName: payload.first_name,
-        lastName: payload.last_name,
-      }
-      const moduleRoles = payload.module_roles
+    const [profile, companyRes] = await Promise.all([
+      getProfile(),
+      getCompany(jwt.companyId),
+    ])
 
-      localStorage.setItem('auth_user', JSON.stringify(user))
-      localStorage.setItem('auth_module_roles', JSON.stringify(moduleRoles))
+    const company = buildCompany(companyRes)
+    const user = buildUserFromJwtAndProfile(jwt, profile, company.name)
 
-      set({
-        isAuthenticated: true,
-        user,
-        tenantId: payload.tenant_id,
-        moduleRoles,
-      })
-    } else {
-      const user = deriveUser(email)
-      const moduleRoles = DEFAULT_MODULE_ROLES
-      localStorage.setItem('auth_token', 'mock-jwt-token')
-      localStorage.setItem('auth_user', JSON.stringify(user))
-      localStorage.setItem('auth_module_roles', JSON.stringify(moduleRoles))
-      set({ isAuthenticated: true, user, moduleRoles })
-    }
+    localStorage.setItem('auth_user', JSON.stringify(user))
+    localStorage.setItem('auth_company', JSON.stringify(company))
+
+    set({
+      isAuthenticated: true,
+      user,
+      company,
+      moduleRoles: DEFAULT_MODULE_ROLES,
+    })
+
+    get().startRefreshTimer()
   },
 
   logout: () => {
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('auth_user')
-    localStorage.removeItem('auth_module_roles')
-    set({ isAuthenticated: false, user: null, moduleRoles: {} })
+    get().stopRefreshTimer()
+    clearTokens()
+    set({
+      isAuthenticated: false,
+      user: null,
+      company: null,
+      moduleRoles: {},
+    })
   },
 
   hasModuleAccess: (moduleSlug: ModuleSlug) => {
@@ -145,4 +181,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isOrgAdmin: () => {
     return 'admin' in get().moduleRoles
   },
+
+  startRefreshTimer: () => {
+    get().stopRefreshTimer()
+
+    refreshTimerId = setInterval(async () => {
+      const token = getAccessToken()
+      if (!token) return
+
+      if (isTokenExpired(token, 60)) {
+        try {
+          await refreshTokens()
+        } catch {
+          get().logout()
+          window.location.href = '/login'
+        }
+      }
+    }, 30_000)
+  },
+
+  stopRefreshTimer: () => {
+    if (refreshTimerId) {
+      clearInterval(refreshTimerId)
+      refreshTimerId = null
+    }
+  },
 }))
+
+// Start refresh timer on load if already authenticated
+if (getAccessToken() && !isTokenExpired(getAccessToken()!)) {
+  useAuthStore.getState().startRefreshTimer()
+}
