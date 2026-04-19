@@ -12,9 +12,7 @@ root.render(
 )
 
 async function enableMocking() {
-  if (import.meta.env.VITE_USE_REAL_API === 'true') {
-    return
-  }
+  if (import.meta.env.PROD) return
   const { worker } = await import('./api/mock/browser')
   return worker.start({ onUnhandledRequest: 'bypass' })
 }
