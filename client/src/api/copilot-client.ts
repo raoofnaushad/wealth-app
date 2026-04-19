@@ -4,6 +4,9 @@ import type {
   CopilotRunResponse,
   RunStatus,
   LLMProvider,
+  FeedbackRequest,
+  FeedbackResponse,
+  AgentTool,
 } from './types'
 import { getAccessToken, refreshTokens, clearTokens } from './platform-api'
 
@@ -106,6 +109,22 @@ export async function askCopilot(
 /** Fetch available LLM providers and models */
 export function getCopilotProviders(): Promise<LLMProvider[]> {
   return copilotFetch<LLMProvider[]>('/agents/llm-providers')
+}
+
+/** Fetch available agent tools */
+export function getCopilotTools(): Promise<AgentTool[]> {
+  return copilotFetch<AgentTool[]>('/agents/tools')
+}
+
+/** Submit quality feedback (thumbs up/down) on a completed run */
+export function submitRunFeedback(
+  runId: string,
+  feedback: FeedbackRequest,
+): Promise<FeedbackResponse> {
+  return copilotFetch<FeedbackResponse>(`/runs/${runId}/feedback`, {
+    method: 'POST',
+    body: JSON.stringify(feedback),
+  })
 }
 
 export { CopilotError }

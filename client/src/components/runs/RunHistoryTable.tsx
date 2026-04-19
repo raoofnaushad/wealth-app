@@ -29,7 +29,7 @@ export function RunHistoryTable({ runs, showWorkflow = false, agents }: RunHisto
   const navigate = useNavigate()
 
   function getModule(workflow: string): string {
-    return agents?.find(a => a.workflow === workflow)?.module ?? ''
+    return agents?.find(a => (a.workflow ?? a.name) === workflow)?.modules[0] ?? ''
   }
 
   return (

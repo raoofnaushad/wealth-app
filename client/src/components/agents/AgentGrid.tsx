@@ -16,7 +16,7 @@ export function AgentGrid({ agents, runs }: AgentGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
       {agents.map((agent) => (
-        <AgentCard key={agent.workflow} agent={agent} lastRun={getLastRun(agent.workflow)} />
+        <AgentCard key={agent.workflow ?? agent.name} agent={agent} lastRun={getLastRun(agent.workflow ?? agent.name)} />
       ))}
     </div>
   )

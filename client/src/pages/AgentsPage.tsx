@@ -18,15 +18,19 @@ export function AgentsPage() {
 
   const filteredAgents = selectedModule === 'all'
     ? agents
-    : agents.filter(a => a.module === selectedModule)
+    : agents.filter(a => a.modules.includes(selectedModule))
 
-  const filteredWorkflows = new Set(filteredAgents.map(a => a.workflow))
+  const filteredWorkflows = new Set(filteredAgents.map(a => a.workflow ?? a.name))
   const filteredRuns = selectedModule === 'all'
     ? allRuns
     : allRuns.filter(r => filteredWorkflows.has(r.workflow))
 
   const moduleCounts: Record<string, number> = { all: agents.length }
-  agents.forEach(a => { moduleCounts[a.module] = (moduleCounts[a.module] || 0) + 1 })
+  agents.forEach(a => {
+    for (const mod of a.modules) {
+      moduleCounts[mod] = (moduleCounts[mod] || 0) + 1
+    }
+  })
 
   return (
     <div className="p-6 space-y-6">

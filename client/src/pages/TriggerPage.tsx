@@ -38,7 +38,7 @@ export function TriggerPage() {
     setError('')
 
     // Validate required fields
-    const missing = agent!.inputFields.filter((f) => f.required && !inputs[f.key]?.trim())
+    const missing = (agent!.inputFields ?? []).filter((f) => f.required && !inputs[f.key]?.trim())
     if (missing.length > 0) {
       setError(`Missing required fields: ${missing.map((f) => f.label).join(', ')}`)
       return
@@ -47,7 +47,7 @@ export function TriggerPage() {
     setSubmitting(true)
     try {
       const processedInput: Record<string, unknown> = {}
-      for (const field of agent!.inputFields) {
+      for (const field of agent!.inputFields ?? []) {
         const val = inputs[field.key]?.trim()
         if (!val) continue
         if (field.type === 'number') {
@@ -87,7 +87,7 @@ export function TriggerPage() {
             <CardTitle className="text-sm">Input Parameters</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {agent.inputFields.map((field) => (
+            {(agent.inputFields ?? []).map((field) => (
               <div key={field.key} className="space-y-2">
                 <Label className="text-xs">
                   {field.label}

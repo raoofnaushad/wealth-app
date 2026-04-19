@@ -13,7 +13,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/platform-api': {
-        target: 'https://staging.asbitech.ai/esb/api/v1',
+        target: 'https://staging.asbitech.ai/asbi/api/v1',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/platform-api/, ''),
         secure: true,
@@ -21,6 +21,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },

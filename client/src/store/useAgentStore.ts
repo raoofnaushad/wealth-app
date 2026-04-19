@@ -24,5 +24,5 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     }
   },
 
-  getAgent: (workflow: string) => get().agents.find((a) => a.workflow === workflow),
+  getAgent: (workflow: string) => get().agents.find((a) => (a.workflow ?? a.name) === workflow),
 }))

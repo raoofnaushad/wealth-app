@@ -59,7 +59,7 @@ export function AgentDetailPage() {
     return <LoadingScreen message="Loading agent..." fullScreen={false} />
   }
 
-  const Icon = ICON_MAP[agent.icon] || FileText
+  const Icon = ICON_MAP[agent.icon ?? ''] || FileText
 
   return (
     <div className="p-6 space-y-6">
@@ -77,11 +77,11 @@ export function AgentDetailPage() {
               <h1 className="text-lg font-semibold">{agent.name}</h1>
               <p className="text-sm text-muted-foreground mt-0.5">{agent.description}</p>
               <div className="flex items-center gap-2 mt-2">
-                <ModuleBadge moduleKey={agent.module} />
+                <ModuleBadge moduleKey={agent.modules[0] ?? ''} />
                 {agent.supportsHitl && (
                   <Badge variant="outline" className="text-[10px]">Human-in-the-Loop</Badge>
                 )}
-                <Badge variant="outline" className="text-[10px]">{agent.steps.length} steps</Badge>
+                {agent.steps && <Badge variant="outline" className="text-[10px]">{agent.steps.length} steps</Badge>}
               </div>
             </div>
           </div>
@@ -169,7 +169,7 @@ export function AgentDetailPage() {
               <div>
                 <h4 className="text-xs font-medium text-muted-foreground mb-2">Steps</h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {agent.steps.map((step, i) => (
+                  {(agent.steps ?? []).map((step, i) => (
                     <Badge key={step} variant="secondary" className="text-[10px] font-mono">
                       {i + 1}. {step.replace(/_/g, ' ')}
                     </Badge>
@@ -179,7 +179,7 @@ export function AgentDetailPage() {
               <div>
                 <h4 className="text-xs font-medium text-muted-foreground mb-2">Input Fields</h4>
                 <div className="space-y-1">
-                  {agent.inputFields.map((field) => (
+                  {(agent.inputFields ?? []).map((field) => (
                     <div key={field.key} className="flex items-center gap-2 text-xs">
                       <span className="font-mono text-muted-foreground">{field.key}</span>
                       <span className="text-muted-foreground">({field.type})</span>

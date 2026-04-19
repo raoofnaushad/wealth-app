@@ -19,7 +19,7 @@ export function RunsPage() {
 
   const filteredWorkflows = selectedModule === 'all'
     ? null
-    : new Set(agents.filter(a => a.module === selectedModule).map(a => a.workflow))
+    : new Set(agents.filter(a => a.modules.includes(selectedModule)).map(a => a.workflow ?? a.name))
 
   const filteredRuns = filteredWorkflows === null
     ? allRuns
@@ -28,9 +28,11 @@ export function RunsPage() {
   // Count runs by module
   const moduleCounts: Record<string, number> = { all: allRuns.length }
   allRuns.forEach(r => {
-    const agent = agents.find(a => a.workflow === r.workflow)
+    const agent = agents.find(a => (a.workflow ?? a.name) === r.workflow)
     if (agent) {
-      moduleCounts[agent.module] = (moduleCounts[agent.module] || 0) + 1
+      for (const mod of agent.modules) {
+        moduleCounts[mod] = (moduleCounts[mod] || 0) + 1
+      }
     }
   })
 

@@ -5,7 +5,7 @@ import type {
   CopilotRunResponse,
   LLMConfig,
 } from '@/api/types'
-import { askCopilot } from '@/api/copilot-client'
+import { askCopilot, submitRunFeedback } from '@/api/copilot-client'
 
 export interface ChatThread {
   id: string
@@ -33,6 +33,7 @@ interface ChatState {
   deleteThread: (threadId: string) => void
   toggleHistory: () => void
   sendMessage: (content: string, llmConfig?: LLMConfig) => void
+  submitFeedback: (messageId: string, rating: 'positive' | 'negative') => Promise<void>
 }
 
 function deriveTitle(messages: ChatMessage[]): string {
@@ -215,7 +216,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         set((s) => {
           const updatedMessages = s.messages.map((m) =>
             m.id === assistantMsgId
-              ? { ...m, content: run.output!.answer, toolCalls, sources: run.output!.sources, thinking: undefined }
+              ? { ...m, content: run.output!.answer, toolCalls, sources: run.output!.sources, thinking: undefined, runId: run.id }
               : m
           )
           let updatedHistory = s.history
@@ -270,6 +271,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
         isLoading: false,
         error: errorMsg,
       }))
+    }
+  },
+
+  submitFeedback: async (messageId: string, rating: 'positive' | 'negative') => {
+    const message = get().messages.find((m) => m.id === messageId)
+    if (!message?.runId) return
+
+    try {
+      await submitRunFeedback(message.runId, { rating })
+      set((s) => ({
+        messages: s.messages.map((m) =>
+          m.id === messageId ? { ...m, feedbackRating: rating } : m
+        ),
+      }))
+    } catch {
+      // Silently fail — feedback is non-critical
     }
   },
 }))

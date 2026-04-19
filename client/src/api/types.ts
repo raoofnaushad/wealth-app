@@ -38,15 +38,17 @@ export interface AgentRunResponse {
 }
 
 export interface WorkflowDefinition {
-  workflow: string
   name: string
   description: string
-  module: string
-  category: string
-  icon: string
-  supportsHitl: boolean
-  inputFields: InputField[]
-  steps: string[]
+  modules: string[]
+  is_sample: boolean
+  // Client-enrichment fields (used by UI, not from backend)
+  workflow?: string
+  category?: string
+  icon?: string
+  supportsHitl?: boolean
+  inputFields?: InputField[]
+  steps?: string[]
 }
 
 export interface InputField {
@@ -101,6 +103,8 @@ export interface ChatMessage {
   thinking?: ThinkingBlock
   toolCalls?: ToolCallStep[]
   sources?: CopilotSource[]
+  runId?: string
+  feedbackRating?: 'positive' | 'negative'
 }
 
 export const ChatContext = {
@@ -481,6 +485,22 @@ export interface CopilotRunResponse {
   started_at: string | null
   completed_at: string | null
   duration_ms: number | null
+}
+
+export interface FeedbackRequest {
+  rating: 'positive' | 'negative'
+  comment?: string
+}
+
+export interface FeedbackResponse {
+  status: 'recorded'
+}
+
+export interface AgentTool {
+  name: string
+  description: string
+  categories: string[]
+  modules: string[]
 }
 
 export interface LLMProvider {

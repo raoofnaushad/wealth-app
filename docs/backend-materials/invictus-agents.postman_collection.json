@@ -61,6 +61,7 @@
                       "    pm.expect(names).to.include('web_search');",
                       "    pm.expect(names).to.include('calculator');",
                       "    pm.expect(names).to.include('copilot');",
+                      "    pm.expect(names).to.include('client_360');",
                       "});",
                       "pm.test('Each workflow has name, modules, is_sample, description', function () {",
                       "    data.forEach(function(w) {",
@@ -1344,6 +1345,217 @@
                   "raw": "{\n  \"message\": \"hello\",\n  \"workflow\": \"nonexistent\"\n}"
                 },
                 "url": { "raw": "{{base_url}}/agents/run", "host": ["{{base_url}}"], "path": ["agents", "run"] }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Client 360",
+          "description": "Client 360 workflow — generates a daily briefing for wealth managers.\n\nGathers CRM data, news, and generates insights assembled into a structured report with summary, alerts, news alerts, action items, meetings, and personal touch sections.\n\nRequires:\n- Engage MCP URL set in .env\n- News/web search capability (TAVILY_API_KEY in .env)\n- Anthropic or Azure OpenAI API key set in .env\n- Celery worker running",
+          "item": [
+            {
+              "name": "1. Trigger Client 360 Run (direct endpoint)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.collectionVariables.set('run_id', data.run_id);",
+                      "pm.test('Status is 202', function () {",
+                      "    pm.response.to.have.status(202);",
+                      "});",
+                      "pm.test('Has run_id', function () {",
+                      "    pm.expect(data.run_id).to.not.be.undefined;",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Authorization", "value": "{{auth_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Generate my daily briefing\",\n  \"llm_config\": {\n    \"provider\": \"anthropic\",\n    \"model\": \"claude-sonnet-4-6\"\n  }\n}"
+                },
+                "url": { "raw": "{{base_url}}/agents/client_360/run", "host": ["{{base_url}}"], "path": ["agents", "client_360", "run"] }
+              }
+            },
+            {
+              "name": "2. Trigger Client 360 via Unified (auto-routed)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.collectionVariables.set('run_id', data.run_id);",
+                      "pm.test('Status is 202', function () {",
+                      "    pm.response.to.have.status(202);",
+                      "});",
+                      "pm.test('Workflow is client_360', function () {",
+                      "    pm.expect(data.workflow).to.eql('client_360');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Authorization", "value": "{{auth_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Show me my daily briefing dashboard\",\n  \"source_module\": \"engage\",\n  \"llm_config\": {\n    \"provider\": \"anthropic\",\n    \"model\": \"claude-sonnet-4-6\"\n  }\n}"
+                },
+                "url": { "raw": "{{base_url}}/agents/run", "host": ["{{base_url}}"], "path": ["agents", "run"] }
+              }
+            },
+            {
+              "name": "3. Get Run Status",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.test('Status is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Output has report structure when complete', function () {",
+                      "    if (data.status === 'complete') {",
+                      "        pm.expect(data.output).to.have.property('report');",
+                      "        pm.expect(data.output.report).to.have.property('summary');",
+                      "        pm.expect(data.output.report).to.have.property('insights');",
+                      "        pm.expect(data.output.report).to.have.property('alerts');",
+                      "        pm.expect(data.output.report).to.have.property('news_alerts');",
+                      "        pm.expect(data.output.report).to.have.property('action_items');",
+                      "        pm.expect(data.output.report).to.have.property('meetings');",
+                      "        pm.expect(data.output.report).to.have.property('personal_touch');",
+                      "        var nodes = data.steps.map(function(s) { return s.node; });",
+                      "        pm.expect(nodes).to.include('gather_crm_data');",
+                      "        pm.expect(nodes).to.include('gather_news');",
+                      "        pm.expect(nodes).to.include('generate_insights');",
+                      "        pm.expect(nodes).to.include('assemble_report');",
+                      "    }",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "{{auth_token}}" }
+                ],
+                "url": { "raw": "{{base_url}}/runs/{{run_id}}", "host": ["{{base_url}}"], "path": ["runs", "{{run_id}}"] }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quality Feedback",
+          "description": "Quality feedback endpoint — submit ratings and comments on completed runs.\n\nAllows clients to provide positive or negative feedback on agent run outputs. Valid ratings are 'positive' and 'negative'. Feedback is stored and used for quality monitoring.",
+          "item": [
+            {
+              "name": "Submit Positive Feedback",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.test('Status is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "pm.test('Feedback recorded', function () {",
+                      "    pm.expect(data.status).to.eql('recorded');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Authorization", "value": "{{auth_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rating\": \"positive\",\n  \"comment\": \"Very helpful daily briefing\"\n}"
+                },
+                "url": { "raw": "{{base_url}}/runs/{{run_id}}/feedback", "host": ["{{base_url}}"], "path": ["runs", "{{run_id}}", "feedback"] }
+              }
+            },
+            {
+              "name": "Submit Negative Feedback",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.test('Status is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "pm.test('Feedback recorded', function () {",
+                      "    pm.expect(data.status).to.eql('recorded');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Authorization", "value": "{{auth_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rating\": \"negative\",\n  \"comment\": \"Missing margin call information\"\n}"
+                },
+                "url": { "raw": "{{base_url}}/runs/{{run_id}}/feedback", "host": ["{{base_url}}"], "path": ["runs", "{{run_id}}", "feedback"] }
+              }
+            },
+            {
+              "name": "Invalid Rating (422)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status is 422', function () {",
+                      "    pm.response.to.have.status(422);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Authorization", "value": "{{auth_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rating\": \"neutral\"\n}"
+                },
+                "url": { "raw": "{{base_url}}/runs/{{run_id}}/feedback", "host": ["{{base_url}}"], "path": ["runs", "{{run_id}}", "feedback"] }
               }
             }
           ]

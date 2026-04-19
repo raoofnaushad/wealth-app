@@ -2,10 +2,11 @@ import { useState } from 'react'
 import Markdown from 'react-markdown'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { User, Brain, ChevronDown, ChevronRight, Loader2, CheckCircle2, Database, Search, Globe, Wrench } from 'lucide-react'
+import { User, Brain, ChevronDown, ChevronRight, Loader2, CheckCircle2, Database, Search, Globe, Wrench, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { ChatMessage as ChatMessageType, ToolCallStep, CopilotSource } from '@/api/types'
 import { InvictusLogo } from '@/components/shared/InvictusLogo'
+import { useChatStore } from '@/store/useChatStore'
 
 interface ChatMessageProps {
   message: ChatMessageType
@@ -273,6 +274,45 @@ function MarkdownContent({ content }: { content: string }) {
   )
 }
 
+function FeedbackButtons({ messageId, currentRating }: { messageId: string; currentRating?: 'positive' | 'negative' }) {
+  const submitFeedback = useChatStore((s) => s.submitFeedback)
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => submitFeedback(messageId, 'positive')}
+        disabled={!!currentRating}
+        className={cn(
+          'p-1 rounded transition-colors',
+          currentRating === 'positive'
+            ? 'text-emerald-500'
+            : currentRating
+              ? 'text-muted-foreground/30 cursor-default'
+              : 'text-muted-foreground/50 hover:text-emerald-500 hover:bg-emerald-500/10'
+        )}
+        title="Helpful"
+      >
+        <ThumbsUp className="h-3 w-3" />
+      </button>
+      <button
+        onClick={() => submitFeedback(messageId, 'negative')}
+        disabled={!!currentRating}
+        className={cn(
+          'p-1 rounded transition-colors',
+          currentRating === 'negative'
+            ? 'text-red-500'
+            : currentRating
+              ? 'text-muted-foreground/30 cursor-default'
+              : 'text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10'
+        )}
+        title="Not helpful"
+      >
+        <ThumbsDown className="h-3 w-3" />
+      </button>
+    </div>
+  )
+}
+
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user'
   const hasThinking = !isUser && message.thinking
@@ -327,6 +367,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
         {/* Source citations */}
         {!isUser && message.sources && message.sources.length > 0 && (
           <SourceCitation sources={message.sources} />
+        )}
+
+        {/* Feedback buttons */}
+        {!isUser && message.runId && isComplete && (
+          <FeedbackButtons messageId={message.id} currentRating={message.feedbackRating} />
         )}
 
         <p className={cn('text-[10px] text-muted-foreground', isUser ? 'text-right' : 'text-left')}>

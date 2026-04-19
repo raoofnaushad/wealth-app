@@ -3,10 +3,11 @@ import type { WorkflowDefinition } from '@/api/types'
 export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
   // ── Invictus Engage ────────────────────────────────────────────────
   {
-    workflow: 'client_360',
-    name: 'Client 360 View',
+    name: 'client_360',
     description: 'Aggregates client data from CRM, portfolio, compliance, and communication modules into a unified 360-degree client profile with key insights.',
-    module: 'engage',
+    modules: ['engage'],
+    is_sample: false,
+    workflow: 'client_360',
     category: 'Engage',
     icon: 'User',
     supportsHitl: false,
@@ -16,10 +17,11 @@ export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
     steps: ['fetch_crm_data', 'fetch_portfolio', 'fetch_compliance', 'fetch_communications', 'aggregate_profile', 'generate_insights'],
   },
   {
-    workflow: 'ai_updates',
-    name: 'AI Updates & Action Items',
+    name: 'ai_updates',
     description: 'Extracts key decisions, action items, and follow-ups from meeting notes and writes them back to CRM records for automatic task creation.',
-    module: 'engage',
+    modules: ['engage'],
+    is_sample: false,
+    workflow: 'ai_updates',
     category: 'Engage',
     icon: 'ListChecks',
     supportsHitl: false,
@@ -30,10 +32,11 @@ export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
     steps: ['fetch_meeting_notes', 'extract_action_items', 'categorize_actions', 'write_to_crm', 'notify_assignees'],
   },
   {
-    workflow: 'fireflies',
-    name: 'Meeting Transcript Analyzer',
+    name: 'fireflies',
     description: 'Parses meeting transcripts from Fireflies.ai, extracts key topics, sentiment, decisions, and participant contributions for relationship intelligence.',
-    module: 'engage',
+    modules: ['engage'],
+    is_sample: false,
+    workflow: 'fireflies',
     category: 'Engage',
     icon: 'MessageSquare',
     supportsHitl: false,
@@ -45,10 +48,11 @@ export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
 
   // ── Risk & Planning ─────────────────────────────────────────────────
   {
-    workflow: 'kyc_fatca',
-    name: 'KYC/FATCA Compliance',
+    name: 'kyc_fatca',
     description: 'Extracts KYC fields from onboarding documents and auto-generates compliance forms (W-8BEN, W-9, CRS) with confidence scores and source tracing.',
-    module: 'risk_planning',
+    modules: ['risk_planning'],
+    is_sample: false,
+    workflow: 'kyc_fatca',
     category: 'Risk & Plan',
     icon: 'Shield',
     supportsHitl: true,
@@ -59,10 +63,11 @@ export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
     steps: ['fetch_documents', 'extract_kyc_fields', 'validate_fields', 'determine_form_type', 'generate_forms', 'human_review', 'finalize'],
   },
   {
-    workflow: 'discrepancy_detection',
-    name: 'Discrepancy Detection',
+    name: 'discrepancy_detection',
     description: 'Two-pass comparison identifying portfolio mismatches between internal records and custodian reports with severity classification and resolution suggestions.',
-    module: 'risk_planning',
+    modules: ['risk_planning'],
+    is_sample: false,
+    workflow: 'discrepancy_detection',
     category: 'Risk & Plan',
     icon: 'AlertTriangle',
     supportsHitl: false,
@@ -74,10 +79,11 @@ export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
   },
 
   {
-    workflow: 'portfolio_recommendation',
-    name: 'Portfolio Recommendation',
+    name: 'portfolio_recommendation',
     description: 'Scores and recommends investment portfolios based on client risk profile, investment objectives, market conditions, and compliance constraints.',
-    module: 'risk_planning',
+    modules: ['risk_planning'],
+    is_sample: false,
+    workflow: 'portfolio_recommendation',
     category: 'Risk & Plan',
     icon: 'PieChart',
     supportsHitl: true,
@@ -90,10 +96,11 @@ export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
 
   // ── Data Aggregation & Reporting ───────────────────────────────────
   {
-    workflow: 'data_ingestion',
-    name: 'Data Ingestion Pipeline',
+    name: 'data_ingestion',
     description: 'Validates and extracts transaction data from bank statements, custodian reports, and other financial documents with automated reconciliation.',
-    module: 'data_reporting',
+    modules: ['data_reporting'],
+    is_sample: false,
+    workflow: 'data_ingestion',
     category: 'Data & Reports',
     icon: 'Database',
     supportsHitl: false,
@@ -104,10 +111,11 @@ export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
     steps: ['validate_documents', 'extract_transactions', 'normalize_data', 'detect_anomalies', 'write_to_database'],
   },
   {
-    workflow: 'post_acquisition_report',
-    name: 'Post-Acquisition Report',
+    name: 'post_acquisition_report',
     description: 'Generates weekly post-acquisition performance reports by aggregating portfolio returns, benchmark comparisons, and attribution analysis.',
-    module: 'data_reporting',
+    modules: ['data_reporting'],
+    is_sample: false,
+    workflow: 'post_acquisition_report',
     category: 'Data & Reports',
     icon: 'FileBarChart',
     supportsHitl: true,
@@ -118,10 +126,11 @@ export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
     steps: ['fetch_portfolio_data', 'calculate_returns', 'benchmark_comparison', 'attribution_analysis', 'draft_report', 'human_review', 'finalize_report'],
   },
   {
-    workflow: 'news_feed_recommender',
-    name: 'News Feed Recommender',
+    name: 'news_feed_recommender',
     description: 'Scans financial news sources daily and curates a personalized feed of market updates, regulatory changes, and client-relevant events.',
-    module: 'data_reporting',
+    modules: ['data_reporting'],
+    is_sample: false,
+    workflow: 'news_feed_recommender',
     category: 'Data & Reports',
     icon: 'Newspaper',
     supportsHitl: false,
@@ -134,10 +143,11 @@ export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
 
   // ── Deals ───────────────────────────────────────────────────────────
   {
-    workflow: 'investment_memo',
-    name: 'Investment Memo Generator',
+    name: 'investment_memo',
     description: 'Generates comprehensive investment memos by extracting financials from deal documents, conducting market research, and drafting executive summaries with key metrics.',
-    module: 'deals',
+    modules: ['deals'],
+    is_sample: false,
+    workflow: 'investment_memo',
     category: 'Deals',
     icon: 'FileText',
     supportsHitl: true,
@@ -151,10 +161,11 @@ export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
 
   // ── Client Portal ──────────────────────────────────────────────────
   {
-    workflow: 'client_onboarding',
-    name: 'Client Onboarding Assistant',
+    name: 'client_onboarding',
     description: 'Guides new clients through the digital onboarding process — collects documents, validates identity, sets up accounts, and triggers compliance checks.',
-    module: 'client_portal',
+    modules: ['client_portal'],
+    is_sample: false,
+    workflow: 'client_onboarding',
     category: 'Client Portal',
     icon: 'UserPlus',
     supportsHitl: true,
@@ -166,10 +177,11 @@ export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
     steps: ['collect_documents', 'validate_identity', 'risk_assessment', 'setup_accounts', 'compliance_check', 'human_review', 'activate_account'],
   },
   {
-    workflow: 'client_report_generator',
-    name: 'Client Report Generator',
+    name: 'client_report_generator',
     description: 'Generates personalized portfolio performance reports for clients including returns, asset allocation, benchmark comparison, and market commentary.',
-    module: 'client_portal',
+    modules: ['client_portal'],
+    is_sample: false,
+    workflow: 'client_report_generator',
     category: 'Client Portal',
     icon: 'FileSpreadsheet',
     supportsHitl: false,
@@ -178,5 +190,21 @@ export const WORKFLOW_DEFINITIONS: WorkflowDefinition[] = [
       { key: 'period', label: 'Report Period', type: 'select', required: true, options: ['monthly', 'quarterly', 'annual'] },
     ],
     steps: ['fetch_client_data', 'calculate_performance', 'generate_charts', 'add_commentary', 'format_report', 'deliver_to_portal'],
+  },
+
+  // ── Copilot (production workflow) ──────────────────────────────────
+  {
+    name: 'copilot',
+    description: 'Conversational AI copilot for wealth management — answers questions using CRM tools, document research, and web search with source citations.',
+    modules: ['engage'],
+    is_sample: false,
+    workflow: 'copilot',
+    category: 'Engage',
+    icon: 'MessageSquare',
+    supportsHitl: false,
+    inputFields: [
+      { key: 'message', label: 'Message', type: 'text', required: true },
+    ],
+    steps: ['agent', 'summarize'],
   },
 ]

@@ -1,5 +1,7 @@
 {
   "rewrites": [
+    { "source": "/platform-api/:path*", "destination": "https://staging.asbitech.ai/asbi/api/v1/:path*" },
+    { "source": "/api/:path*", "destination": "https://copilot.yourdomain.com/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
