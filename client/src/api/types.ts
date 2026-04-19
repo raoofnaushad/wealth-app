@@ -100,6 +100,7 @@ export interface ChatMessage {
   timestamp: string
   thinking?: ThinkingBlock
   toolCalls?: ToolCallStep[]
+  sources?: CopilotSource[]
 }
 
 export const ChatContext = {
@@ -321,4 +322,176 @@ export interface MeetingBrief {
     actionItems: { item: string; owner: string; status: string }[]
     notes: string
   }
+}
+
+// ── Platform API (Auth, Profile, Company) ───────────────────────────
+
+export interface LoginRequest {
+  username: string
+  password: string
+}
+
+export interface LoginResponse {
+  access_token: string
+  refresh_token: string
+}
+
+export interface UserProfileDto {
+  id: number
+  companyId: number
+  title: string
+  userFirstName: string
+  userLastName: string
+  aboutUser: string
+  addressDto: {
+    id: number
+    line1: string
+    line2: string
+    city: string
+    state: string
+    zip: string
+    countryId: number
+    countryStateId: number
+    addressTypeId: number
+  }
+  isAllRecordAccessEnabled: boolean
+  isAllTeamRecordAccessEnabled: boolean
+}
+
+export interface ProfileResponse {
+  id: number
+  username: string
+  emailAddress: string
+  mobilePhone: string
+  rolesCount: number
+  userProfileDto: UserProfileDto
+  globalRoleId: number
+  userStatusId: number
+  userSubStatusId: number
+  lastLoginDate: string
+  userPreference: {
+    id: number
+    preferredLanguageId: number
+    notificationPreferenceId: number
+    timeZoneId: number
+  }
+}
+
+export interface CompanyResponse {
+  company: {
+    id: number
+    name: string
+    addressId: number
+    phone: string
+    url: string
+    companyStatusId: number
+    preferredLanguageId: number
+    defaultCurrencyId: number
+    defaultTimeZoneId: number
+    isCompanyUsingOneLanguage: boolean
+  }
+  companyAddress: {
+    id: number
+    line1: string
+    line2: string
+    city: string
+    state: string
+    zip: string
+    countryId: number
+    countryStateId: number
+    addressTypeId: number
+  }
+}
+
+export interface JwtPayload {
+  sub: string
+  id: number
+  companyId: number
+  role: number
+  capabilities: string[]
+  exp: number
+  iat: number
+  companyLanguage: string
+  userLanguage: string
+  userLanguageTag: string
+  userTimezone: string
+  impersonated: boolean
+  isCompanyUsingOneLanguage: boolean
+}
+
+// ── Copilot API ─────────────────────────────────────────────────────
+
+export interface CopilotRequest {
+  message: string
+  workflow?: string
+  conversation_id?: string
+  source_module?: 'engage' | 'deals' | 'plan' | 'insights' | 'portal'
+  context?: Record<string, unknown>
+  llm_config?: LLMConfig
+}
+
+export interface LLMConfig {
+  provider: 'anthropic' | 'azure_openai' | 'openrouter'
+  model: string
+  temperature?: number
+  max_tokens?: number
+}
+
+export interface CopilotTriggerResponse {
+  run_id: string
+  status: 'queued'
+  workflow?: string
+}
+
+export interface CopilotOutput {
+  answer: string
+  sources: CopilotSource[]
+  tools_called: CopilotToolCall[]
+  iteration_count: number
+}
+
+export interface CopilotSource {
+  type: string
+  tool: string
+  doc_id?: string
+  excerpt?: string
+  page_numbers?: number[]
+  data?: Record<string, unknown>
+}
+
+export interface CopilotToolCall {
+  tool: string
+  args: Record<string, unknown>
+  iteration: number
+}
+
+export interface CopilotRunResponse {
+  id: string
+  tenant_id: string
+  user_id: string
+  workflow: string
+  status: RunStatus
+  input: Record<string, unknown> | null
+  output: CopilotOutput | null
+  steps: RunStep[]
+  llm_config: LLMConfig | null
+  error: string | null
+  triggered_by: string | null
+  created_at: string | null
+  started_at: string | null
+  completed_at: string | null
+  duration_ms: number | null
+}
+
+export interface LLMProvider {
+  provider: string
+  models: LLMModel[]
+  default?: boolean
+}
+
+export interface LLMModel {
+  id: string
+  name: string
+  vendor: string
+  supports_tools?: boolean
 }
