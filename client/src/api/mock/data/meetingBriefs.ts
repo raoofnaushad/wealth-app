@@ -34,6 +34,7 @@ const briefs: MeetingBrief[] = [
       ],
       secondaryTopics: [
         'Portfolio performance context (strong RE and infra) and outstanding admin items (KYC, subscription agreement).',
+        'New pipeline opportunity: Envirosoil NV — Belgian environmental services direct investment (LBO by Vybros Capital Partners). Passed pre-screening with Proceed recommendation. Discuss fit with infrastructure allocation gap and ESG alignment.',
       ],
     },
     capitalFlows: {
@@ -62,6 +63,7 @@ const briefs: MeetingBrief[] = [
     pipeline: [
       { name: 'GCC Data Centers Fund I', category: 'Infrastructure', description: 'Core digital infrastructure strategy targeting low-to-mid teens net returns with contracted demand and strong regional tailwinds.', icMemoUrl: '#' },
       { name: 'Apex Logistics', category: 'Logistics', description: 'Growth logistics opportunity targeting c.18%+ gross return potential, with execution upside but higher near-term operating risk.', icMemoUrl: '#' },
+      { name: 'Envirosoil NV', category: 'Environmental Services', description: 'Belgian soil remediation and PFAS investigation platform. Direct investment led by Vybros Capital Partners (LBO). Zero debt, 18.4% EBITDA margin, buy-and-build strategy in fragmented market. Recommendation: Proceed.', icMemoUrl: '/files/Sniff Test_Envirosoil.pdf' },
     ],
     performance: [
       { fund: 'GCC RE Fund III', navDate: 'NAV 31 Mar 2026', qoqChange: 12.4 },

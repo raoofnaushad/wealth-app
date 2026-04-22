@@ -315,6 +315,37 @@ export const MOCK_ASSET_MANAGERS: AssetManager[] = [
     createdAt: '2025-04-01T10:00:00Z',
     updatedAt: '2026-03-01T11:00:00Z',
   },
+  {
+    id: 'am-vybros',
+    name: 'Vybros Capital Partners',
+    type: 'Private Equity',
+    location: 'Belgium',
+    description: 'Belgian private equity firm specializing in buy-and-build strategies in fragmented service markets. Led the leveraged buyout of Envirosoil NV in October 2024.',
+    fundInfo: {
+      'Current Fund': 'Vybros Capital Fund I',
+      'Fund Size': 'Undisclosed',
+      'Vintage': '2024',
+      'Strategy': 'Buyout (LBO)',
+    },
+    firmInfo: {
+      'Founded': 'N/A',
+      'AUM': 'Undisclosed',
+      'Team Size': 'N/A',
+      'Headquarters': 'Belgium',
+    },
+    strategy: {
+      'Focus': 'Environmental services, buy-and-build',
+      'Stage': 'LBO / Platform',
+      'Geography': 'Belgium / Benelux',
+    },
+    characteristics: {
+      'Track Record': 'First institutional deal — Envirosoil platform',
+      'ESG Rating': 'N/A',
+    },
+    createdByType: 'manual',
+    createdAt: '2026-04-20T10:00:00Z',
+    updatedAt: '2026-04-20T10:00:00Z',
+  },
 ]
 
 // ── Opportunities ─────────────────────────────────────────────────────
@@ -500,6 +531,40 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
     createdAt: '2025-12-01T10:00:00Z',
     updatedAt: '2026-02-10T09:00:00Z',
   },
+  {
+    id: 'opp-envirosoil',
+    name: 'Envirosoil NV',
+    investmentTypeId: 'invtype-direct',
+    investmentTypeName: 'Direct',
+    pipelineStatus: 'active',
+    assetManagerId: 'am-vybros',
+    assetManagerName: 'Vybros Capital Partners',
+    assignedTo: 'user-raoof',
+    snapshotData: {
+      'Company Name': 'Envirosoil NV',
+      'Sector': 'Environmental Services (Soil Remediation, PFAS Investigation)',
+      'Revenue': 10_400_000,
+      'EBITDA': 1_900_000,
+      'Valuation': 0,
+      'Stake Offered': 0,
+      'Investment Amount': 0,
+    },
+    snapshotCitations: {
+      'Revenue': 'Sniff Test p. 1 — FY2024 €10.4M',
+      'EBITDA': 'Sniff Test p. 1 — FY2024 €1.9M (18.4% margin)',
+    },
+    sourceType: 'inbound',
+    mandateFits: [
+      { mandateId: 'mandate-real-assets-ii', fitScore: 'moderate', reasoning: 'Environmental services tangentially related to energy transition theme. Belgian regulatory-driven demand provides stable cash flows similar to infrastructure. Zero debt and capital-light model aligns with real assets criteria.' },
+      { mandateId: 'mandate-growth-2026', fitScore: 'weak', reasoning: 'Environmental services sector outside core tech/healthcare focus. Revenue below $10M ARR threshold. However, buy-and-build strategy has growth equity characteristics.' },
+    ],
+    strategyFit: 'moderate',
+    recommendation: 'approve',
+    approvalStage: 'pre_screening',
+    createdBy: 'user-raoof',
+    createdAt: '2026-04-22T10:00:00Z',
+    updatedAt: '2026-04-22T10:00:00Z',
+  },
 ]
 
 // ── News ──────────────────────────────────────────────────────────────
@@ -560,6 +625,17 @@ export const MOCK_NEWS_ITEMS: NewsItem[] = [
     generatedAt: '2026-04-06T11:00:00Z',
     createdAt: '2026-04-06T11:00:00Z',
   },
+  {
+    id: 'news-6',
+    headline: 'Vybros Capital Partners Builds Environmental Services Platform with Envirosoil NV',
+    summary: 'Belgian PE firm Vybros Capital Partners is building a buy-and-build platform in environmental services, anchored by Envirosoil NV. The company completed its first add-on acquisition (A+E Consult) in June 2025, validating the consolidation thesis in the fragmented Belgian market.',
+    fullContent: null,
+    category: 'sector',
+    sourceUrl: 'https://example.com/vybros-envirosoil-platform',
+    linkedOpportunityIds: ['opp-envirosoil'],
+    generatedAt: '2026-04-20T08:00:00Z',
+    createdAt: '2026-04-20T08:00:00Z',
+  },
 ]
 
 // ── Dashboard Summary ─────────────────────────────────────────────────
@@ -567,11 +643,11 @@ export const MOCK_NEWS_ITEMS: NewsItem[] = [
 export const MOCK_DASHBOARD_SUMMARY: DashboardSummary = {
   pipelineCounts: [
     { status: 'new', count: 2 },
-    { status: 'active', count: 2 },
+    { status: 'active', count: 3 },
     { status: 'archived', count: 1 },
     { status: 'ignored', count: 1 },
   ],
-  totalOpportunities: 6,
+  totalOpportunities: 7,
   mandateAllocations: [
     {
       mandateId: 'mandate-growth-2026',
@@ -585,7 +661,7 @@ export const MOCK_DASHBOARD_SUMMARY: DashboardSummary = {
       mandateName: 'Real Assets Fund II',
       targetAllocation: 200_000_000,
       currentAllocation: 50_000_000,
-      opportunityCount: 3,
+      opportunityCount: 4,
     },
   ],
   recentNews: MOCK_NEWS_ITEMS.slice(0, 3),
@@ -917,6 +993,17 @@ export const MOCK_SOURCE_FILES: SourceFile[] = [
     processed: true,
     sourceOrigin: 'email',
     createdAt: '2026-03-10T09:00:00Z',
+  },
+  {
+    id: 'sf-envirosoil-sniff',
+    opportunityId: 'opp-envirosoil',
+    fileName: 'Sniff Test_Envirosoil.pdf',
+    fileUrl: '/files/Sniff Test_Envirosoil.pdf',
+    fileType: 'application/pdf',
+    fileSize: 261_734,
+    processed: true,
+    sourceOrigin: 'manual',
+    createdAt: '2026-04-22T10:00:00Z',
   },
 ]
 

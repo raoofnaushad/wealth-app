@@ -2,6 +2,7 @@ import riskPlanningMd from '../../knowledge-base/risk-and-planning/al-rashidi-20
 import dataAggregationMd from '../../knowledge-base/data-aggregation-reporting/al-rashidi-dashboard.md?raw'
 import crmEngageMd from '../../knowledge-base/engage/al-rashidi-crm.md?raw'
 import dealsMd from '../../knowledge-base/deals/greengrid-energy-prescreening.md?raw'
+import envirosoilMd from '../../knowledge-base/deals/envirosoil-prescreening.md?raw'
 import insightsMd from '../../knowledge-base/insights/daily-brief-2026-04-08.md?raw'
 import clientPortalMd from '../../knowledge-base/client-portal/al-rashidi-portal.md?raw'
 
@@ -34,7 +35,7 @@ export const KNOWLEDGE_BASE_MODULES: KnowledgeBaseModule[] = [
   {
     key: 'deals',
     label: 'Deals',
-    content: dealsMd,
+    content: dealsMd + '\n\n---\n\n' + envirosoilMd,
     sourceUrl: 'https://proud-desert-0353e8200.2.azurestaticapps.net/opportunities/85',
   },
   {
