@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { format, addDays } from 'date-fns'
 import { Clock, CheckCircle2, Loader, Newspaper, Heart } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -17,17 +17,20 @@ export function DashboardPage() {
   const { user } = useAuthStore()
   const [summaries, setSummaries] = useState<DailySummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [actionModal, setActionModal] = useState<ActionModalContext>({ type: null })
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    summariesApi.list()
+    summariesApi
+      .list()
       .then((data) => {
-        if (!cancelled) {
-          setSummaries(data)
-          setLoading(false)
-        }
+        if (cancelled) return
+        const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date))
+        setSummaries(sorted)
+        setSelectedDate(sorted[0]?.date ?? null)
+        setLoading(false)
       })
       .catch(() => {
         if (!cancelled) setLoading(false)
@@ -37,12 +40,25 @@ export function DashboardPage() {
     }
   }, [])
 
+  const sortedSummaries = useMemo(
+    () => [...summaries].sort((a, b) => b.date.localeCompare(a.date)),
+    [summaries]
+  )
+
   if (loading) {
     return <LoadingScreen message="Loading your daily brief..." fullScreen={false} />
   }
 
-  const today = summaries[0]
-  if (!today) return null
+  const currentIndex = sortedSummaries.findIndex((s) => s.date === selectedDate)
+  const current = currentIndex >= 0 ? sortedSummaries[currentIndex] : sortedSummaries[0]
+  if (!current) return null
+  const isToday = current.date === sortedSummaries[0]?.date
+  const canGoPrev = currentIndex >= 0 && currentIndex < sortedSummaries.length - 1
+  const canGoNext = currentIndex > 0
+  // Reserved for the date navigation UI added in subsequent tasks.
+  void isToday
+  void canGoPrev
+  void canGoNext
 
   function getGreeting(): string {
     const hour = new Date().getHours()
@@ -51,11 +67,11 @@ export function DashboardPage() {
     return 'Good Evening!'
   }
 
-  const totalAlerts = today.sections.portfolioAlerts.length
-  const totalActions = today.sections.actionItems.length
-  const totalNews = today.sections.newsAlerts.length
-  const totalMeetings = today.sections.meetings.length
-  const totalPersonal = today.sections.personal.length
+  const totalAlerts = current.sections.portfolioAlerts.length
+  const totalActions = current.sections.actionItems.length
+  const totalNews = current.sections.newsAlerts.length
+  const totalMeetings = current.sections.meetings.length
+  const totalPersonal = current.sections.personal.length
 
   const advisorName = user?.name || 'James Wilson'
 
@@ -115,18 +131,18 @@ export function DashboardPage() {
       </div>
 
       {/* Relationship Pool */}
-      <RelationshipPool pool={today.relationshipPool} />
+      <RelationshipPool pool={current.relationshipPool} />
 
       {/* Main grid */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="space-y-6">
-          <PortfolioAlerts alerts={today.sections.portfolioAlerts} onAction={openAction} />
-          <ActionItems items={today.sections.actionItems} onAction={openAction} />
-          <PersonalTouch items={today.sections.personal} onAction={openAction} />
+          <PortfolioAlerts alerts={current.sections.portfolioAlerts} onAction={openAction} />
+          <ActionItems items={current.sections.actionItems} onAction={openAction} />
+          <PersonalTouch items={current.sections.personal} onAction={openAction} />
         </div>
         <div className="space-y-6">
-          <NewsAlerts alerts={today.sections.newsAlerts} onAction={openAction} />
-          <Meetings meetings={today.sections.meetings} advisorName={advisorName} />
+          <NewsAlerts alerts={current.sections.newsAlerts} onAction={openAction} />
+          <Meetings meetings={current.sections.meetings} advisorName={advisorName} />
         </div>
       </div>
 
