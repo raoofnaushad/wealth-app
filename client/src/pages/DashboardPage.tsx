@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { Clock, CheckCircle2, Loader, Newspaper, Heart, ChevronLeft, ChevronRight, RefreshCw, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { summariesApi } from '@/api/endpoints'
@@ -14,7 +14,6 @@ import { ActionModal } from '@/components/insights/ActionModal'
 import type { DailySummary, ActionModalContext, ActionModalType } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
-import { parseISO } from 'date-fns'
 
 export function DashboardPage() {
   const { user } = useAuthStore()
@@ -149,23 +148,21 @@ export function DashboardPage() {
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <span>
-                    <Button
-                      type="button"
-                      onClick={handleGenerate}
-                      disabled={!isToday || generating}
-                      variant="default"
-                      size="sm"
-                      className="ml-1 h-7 gap-1.5"
-                    >
-                      {generating ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-3.5 w-3.5" />
-                      )}
-                      {generating ? 'Generating…' : "Generate today's brief"}
-                    </Button>
-                  </span>
+                  <Button
+                    type="button"
+                    onClick={handleGenerate}
+                    disabled={!isToday || generating}
+                    variant="default"
+                    size="sm"
+                    className="ml-1 h-7 gap-1.5"
+                  >
+                    {generating ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    )}
+                    {generating ? 'Generating…' : "Generate today's brief"}
+                  </Button>
                 }
               />
               {!isToday && (
