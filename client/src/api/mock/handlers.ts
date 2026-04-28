@@ -66,6 +66,11 @@ export const handlers = [
     return HttpResponse.json(DAILY_SUMMARIES)
   }),
 
+  http.post('/api/daily-summaries/generate', async () => {
+    await delay(300)
+    return HttpResponse.json({ runId: `sum-${Date.now()}` }, { status: 202 })
+  }),
+
   // ── Meeting Briefs ───────────────────────────────────────────────
 
   http.get('/api/meeting-briefs/:meetingId', async ({ params }) => {
