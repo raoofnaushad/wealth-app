@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { format, parseISO } from 'date-fns'
-import { Clock, CheckCircle2, Loader, Newspaper, Heart, ChevronLeft, ChevronRight, RefreshCw, Loader2 } from 'lucide-react'
+import { format, formatDistanceToNowStrict, parseISO } from 'date-fns'
+import { Clock, CheckCircle2, Loader, Newspaper, Heart, ChevronLeft, ChevronRight, RefreshCw, Loader2, Info } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { summariesApi } from '@/api/endpoints'
 import { LoadingScreen } from '@/components/shared/LoadingScreen'
@@ -213,6 +213,25 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {!isToday && (
+        <div className="flex items-center justify-between bg-muted/40 border border-border/60 rounded-lg px-4 py-2.5">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Info className="h-4 w-4" />
+            <span>
+              Viewing {format(parseISO(current.date), "EEEE, do MMMM")} —{' '}
+              {formatDistanceToNowStrict(parseISO(current.date), { addSuffix: true })}.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={goToday}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Back to today
+          </button>
+        </div>
+      )}
 
       {/* Relationship Pool */}
       <RelationshipPool pool={current.relationshipPool} />
