@@ -15,6 +15,7 @@ export const runsApi = {
 
 export const summariesApi = {
   list: () => api.get<DailySummary[]>('/daily-summaries'),
+  generate: () => api.post<{ runId: string }>('/daily-summaries/generate', {}),
 }
 
 export const meetingBriefsApi = {
