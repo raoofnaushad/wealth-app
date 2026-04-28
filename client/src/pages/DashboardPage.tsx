@@ -148,21 +148,23 @@ export function DashboardPage() {
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <Button
-                    type="button"
-                    onClick={handleGenerate}
-                    disabled={!isToday || generating}
-                    variant="default"
-                    size="sm"
-                    className="ml-1 h-7 gap-1.5"
-                  >
-                    {generating ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-3.5 w-3.5" />
-                    )}
-                    {generating ? 'Generating…' : "Generate today's brief"}
-                  </Button>
+                  <span className="inline-flex">
+                    <Button
+                      type="button"
+                      onClick={handleGenerate}
+                      disabled={!isToday || generating}
+                      variant="default"
+                      size="sm"
+                      className="ml-1 h-7 gap-1.5"
+                    >
+                      {generating ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      )}
+                      {generating ? 'Generating…' : "Generate today's brief"}
+                    </Button>
+                  </span>
                 }
               />
               {!isToday && (
