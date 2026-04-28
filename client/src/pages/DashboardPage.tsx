@@ -220,7 +220,7 @@ export function DashboardPage() {
             <Info className="h-4 w-4" />
             <span>
               Viewing {format(parseISO(current.date), "EEEE, do MMMM")} —{' '}
-              {formatDistanceToNowStrict(parseISO(current.date), { addSuffix: true })}.
+              {formatDistanceToNowStrict(parseISO(current.date), { addSuffix: true, unit: 'day', roundingMethod: 'floor' })}.
             </span>
           </div>
           <button
