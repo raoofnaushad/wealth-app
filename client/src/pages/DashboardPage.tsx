@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { format, addDays } from 'date-fns'
-import { Clock, CheckCircle2, Loader, Newspaper, Heart } from 'lucide-react'
+import { format } from 'date-fns'
+import { Clock, CheckCircle2, Loader, Newspaper, Heart, ChevronLeft, ChevronRight, RefreshCw, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { summariesApi } from '@/api/endpoints'
 import { LoadingScreen } from '@/components/shared/LoadingScreen'
@@ -12,6 +12,9 @@ import { Meetings } from '@/components/insights/Meetings'
 import { PersonalTouch } from '@/components/insights/PersonalTouch'
 import { ActionModal } from '@/components/insights/ActionModal'
 import type { DailySummary, ActionModalContext, ActionModalType } from '@/api/types'
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
+import { parseISO } from 'date-fns'
 
 export function DashboardPage() {
   const { user } = useAuthStore()
@@ -19,6 +22,8 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [actionModal, setActionModal] = useState<ActionModalContext>({ type: null })
+  const [generating, setGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -27,9 +32,8 @@ export function DashboardPage() {
       .list()
       .then((data) => {
         if (cancelled) return
-        const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date))
-        setSummaries(sorted)
-        setSelectedDate(sorted[0]?.date ?? null)
+        setSummaries(data)
+        setSelectedDate([...data].sort((a, b) => b.date.localeCompare(a.date))[0]?.date ?? null)
         setLoading(false)
       })
       .catch(() => {
@@ -55,10 +59,6 @@ export function DashboardPage() {
   const isToday = current.date === sortedSummaries[0]?.date
   const canGoPrev = currentIndex >= 0 && currentIndex < sortedSummaries.length - 1
   const canGoNext = currentIndex > 0
-  // Reserved for the date navigation UI added in subsequent tasks.
-  void isToday
-  void canGoPrev
-  void canGoNext
 
   function getGreeting(): string {
     const hour = new Date().getHours()
@@ -79,6 +79,32 @@ export function DashboardPage() {
     return text?.replace(/\{\{ADVISOR_NAME\}\}/g, advisorName)
   }
 
+  function goPrev() {
+    if (canGoPrev) setSelectedDate(sortedSummaries[currentIndex + 1].date)
+  }
+  function goNext() {
+    if (canGoNext) setSelectedDate(sortedSummaries[currentIndex - 1].date)
+  }
+  function goToday() {
+    if (sortedSummaries[0]) setSelectedDate(sortedSummaries[0].date)
+  }
+
+  async function handleGenerate() {
+    setGenerating(true)
+    setGenerateError(null)
+    try {
+      await summariesApi.generate()
+      const data = await summariesApi.list()
+      const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date))
+      setSummaries(sorted)
+      if (sorted[0]) setSelectedDate(sorted[0].date)
+    } catch {
+      setGenerateError("Couldn't start generation. Try again.")
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   function openAction(type: ActionModalType, clientName?: string, to?: string, subject?: string, description?: string) {
     setActionModal({ type, clientName: injectName(clientName), prefillTo: to, prefillSubject: injectName(subject), prefillDescription: injectName(description) })
   }
@@ -87,14 +113,75 @@ export function DashboardPage() {
     <div className="p-6 lg:p-8 space-y-8">
       {/* Header */}
       <div>
-        <p className="text-sm text-muted-foreground mb-1">
-          {format(addDays(new Date(), 1), "EEEE, do MMMM")}
-        </p>
+        <div className="flex items-center gap-2 mb-1">
+          <button
+            type="button"
+            onClick={goPrev}
+            disabled={!canGoPrev}
+            aria-label="Previous day"
+            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <p className="text-sm text-muted-foreground tabular-nums min-w-[180px] text-center">
+            {format(parseISO(current.date), "EEEE, do MMMM")}
+          </p>
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={!canGoNext}
+            aria-label="Next day"
+            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <Button
+            type="button"
+            onClick={goToday}
+            disabled={isToday}
+            variant="secondary"
+            size="sm"
+            className="ml-2 h-7"
+          >
+            Today
+          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span>
+                    <Button
+                      type="button"
+                      onClick={handleGenerate}
+                      disabled={!isToday || generating}
+                      variant="default"
+                      size="sm"
+                      className="ml-1 h-7 gap-1.5"
+                    >
+                      {generating ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      )}
+                      {generating ? 'Generating…' : "Generate today's brief"}
+                    </Button>
+                  </span>
+                }
+              />
+              {!isToday && (
+                <TooltipContent side="bottom">Available on today's brief only</TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">
             {getGreeting()} {user?.name?.split(' ')[0] || 'James'},
           </h1>
         </div>
+        {generateError && (
+          <p className="text-xs text-destructive mt-1">{generateError}</p>
+        )}
 
         {/* Stats ribbon */}
         <div className="flex items-center gap-6 mt-4 py-3 px-5 rounded-xl bg-white dark:bg-card border border-border/60 shadow-sm w-fit">
