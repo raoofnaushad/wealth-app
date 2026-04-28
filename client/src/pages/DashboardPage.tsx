@@ -140,7 +140,7 @@ export function DashboardPage() {
             disabled={isToday}
             variant="secondary"
             size="sm"
-            className="ml-2 h-7"
+            className="ml-auto h-7"
           >
             Today
           </Button>
