@@ -1,15 +1,14 @@
 import type { DailySummary, RelationshipPool } from '@/api/types'
 
-// Anchor all dates to tomorrow so the demo brief reads as "today" during the presentation
-function getTomorrowAnchor(): Date {
-  const d = new Date()
-  d.setDate(d.getDate() + 1)
-  return d
+function getTodayString(): string {
+  return new Date().toISOString().split('T')[0]
 }
 
 function getBusinessDays(count: number): string[] {
   const dates: string[] = []
-  const d = getTomorrowAnchor()
+  // Start from yesterday so today is not pre-loaded (empty state demo)
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
   while (dates.length < count) {
     const day = d.getDay()
     if (day !== 0 && day !== 6) {
@@ -22,9 +21,11 @@ function getBusinessDays(count: number): string[] {
 
 const DATES = getBusinessDays(10)
 
+export const TODAY = getTodayString()
+
 function getNextBusinessDays(count: number): string[] {
   const dates: string[] = []
-  const d = getTomorrowAnchor()
+  const d = new Date()
   d.setDate(d.getDate() + 1)
   while (dates.length < count) {
     const day = d.getDay()
@@ -379,4 +380,12 @@ export const DAILY_SUMMARIES: DailySummary[] = [
 
 export function getDailySummaryByDate(date: string): DailySummary | undefined {
   return DAILY_SUMMARIES.find((s) => s.date === date)
+}
+
+export function createTodaySummary(): DailySummary {
+  return {
+    ...day1,
+    id: `ds-today-${Date.now()}`,
+    date: TODAY,
+  }
 }

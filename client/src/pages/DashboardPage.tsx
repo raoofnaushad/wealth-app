@@ -24,6 +24,8 @@ export function DashboardPage() {
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
 
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -32,7 +34,11 @@ export function DashboardPage() {
       .then((data) => {
         if (cancelled) return
         setSummaries(data)
-        setSelectedDate([...data].sort((a, b) => b.date.localeCompare(a.date))[0]?.date ?? null)
+        const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date))
+        const today = format(new Date(), 'yyyy-MM-dd')
+        const todayEntry = sorted.find((s) => s.date === today)
+        // Default to today if it exists; otherwise stay on null to show empty state for today
+        setSelectedDate(todayEntry?.date ?? null)
         setLoading(false)
       })
       .catch(() => {
@@ -48,16 +54,17 @@ export function DashboardPage() {
     [summaries]
   )
 
-  if (loading) {
-    return <LoadingScreen message="Loading your daily brief..." fullScreen={false} />
-  }
+  const hasTodayBrief = sortedSummaries.some((s) => s.date === todayStr)
+  // When selectedDate is null (no today brief yet), we're in "today empty" mode
+  const viewingTodaySlot = selectedDate === null || selectedDate === todayStr
+  const currentIndex = selectedDate ? sortedSummaries.findIndex((s) => s.date === selectedDate) : -1
+  const current = currentIndex >= 0 ? sortedSummaries[currentIndex] : null
+  const isToday = !!current && current.date === todayStr
+  // When in today-empty mode, prev navigates to most recent past brief
+  const canGoPrev = viewingTodaySlot ? sortedSummaries.length > 0 : (!!current && currentIndex < sortedSummaries.length - 1)
+  const canGoNext = !viewingTodaySlot && !!current && currentIndex > 0
 
-  const currentIndex = sortedSummaries.findIndex((s) => s.date === selectedDate)
-  const current = currentIndex >= 0 ? sortedSummaries[currentIndex] : sortedSummaries[0]
-  if (!current) return null
-  const isToday = current.date === sortedSummaries[0]?.date
-  const canGoPrev = currentIndex >= 0 && currentIndex < sortedSummaries.length - 1
-  const canGoNext = currentIndex > 0
+  const advisorName = user?.name || 'James Wilson'
 
   function getGreeting(): string {
     const hour = new Date().getHours()
@@ -66,26 +73,29 @@ export function DashboardPage() {
     return 'Good Evening!'
   }
 
-  const totalAlerts = current.sections.portfolioAlerts.length
-  const totalActions = current.sections.actionItems.length
-  const totalNews = current.sections.newsAlerts.length
-  const totalMeetings = current.sections.meetings.length
-  const totalPersonal = current.sections.personal.length
-
-  const advisorName = user?.name || 'James Wilson'
-
   function injectName(text?: string): string | undefined {
     return text?.replace(/\{\{ADVISOR_NAME\}\}/g, advisorName)
   }
 
   function goPrev() {
-    if (canGoPrev) setSelectedDate(sortedSummaries[currentIndex + 1].date)
+    if (!canGoPrev) return
+    if (viewingTodaySlot) {
+      setSelectedDate(sortedSummaries[0].date)
+    } else {
+      setSelectedDate(sortedSummaries[currentIndex + 1].date)
+    }
   }
   function goNext() {
-    if (canGoNext) setSelectedDate(sortedSummaries[currentIndex - 1].date)
+    if (!canGoNext) return
+    if (currentIndex === 0) {
+      // Back to today slot
+      setSelectedDate(hasTodayBrief ? todayStr : null)
+    } else {
+      setSelectedDate(sortedSummaries[currentIndex - 1].date)
+    }
   }
   function goToday() {
-    if (sortedSummaries[0]) setSelectedDate(sortedSummaries[0].date)
+    setSelectedDate(hasTodayBrief ? todayStr : null)
   }
 
   async function handleGenerate() {
@@ -96,7 +106,8 @@ export function DashboardPage() {
       const data = await summariesApi.list()
       const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date))
       setSummaries(sorted)
-      if (sorted[0]) setSelectedDate(sorted[0].date)
+      const todayEntry = sorted.find((s) => s.date === todayStr)
+      setSelectedDate(todayEntry?.date ?? sorted[0]?.date ?? null)
     } catch {
       setGenerateError("Couldn't start generation. Try again.")
     } finally {
@@ -107,6 +118,60 @@ export function DashboardPage() {
   function openAction(type: ActionModalType, clientName?: string, to?: string, subject?: string, description?: string) {
     setActionModal({ type, clientName: injectName(clientName), prefillTo: to, prefillSubject: injectName(subject), prefillDescription: injectName(description) })
   }
+
+  if (loading) {
+    return <LoadingScreen message="Loading your daily brief..." fullScreen={false} />
+  }
+
+  // No brief for today yet (selectedDate is null = today slot with no brief)
+  if (!hasTodayBrief && viewingTodaySlot) {
+    return (
+      <div className="p-6 lg:p-8 space-y-6">
+        {/* Thin nav row so user can still browse past briefs */}
+        {sortedSummaries.length > 0 && (
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-muted-foreground tabular-nums min-w-[180px]">
+              {format(new Date(), "EEEE, do MMMM")}
+            </p>
+            <button
+              type="button"
+              onClick={() => setSelectedDate(sortedSummaries[0].date)}
+              className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+            >
+              View past briefs
+            </button>
+          </div>
+        )}
+
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+          <div className="max-w-md space-y-5">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+              <RefreshCw className="h-8 w-8 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold">No brief yet for today</h2>
+              <p className="text-sm text-muted-foreground">
+                Generate your daily brief to see portfolio alerts, meetings, news, and action items for {format(new Date(), 'EEEE, do MMMM')}.
+              </p>
+            </div>
+            {generateError && <p className="text-xs text-destructive">{generateError}</p>}
+            <Button onClick={handleGenerate} disabled={generating} size="lg" className="gap-2">
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {generating ? 'Generating…' : "Generate Today's Brief"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!current) return null
+
+  const totalAlerts = current.sections.portfolioAlerts.length
+  const totalActions = current.sections.actionItems.length
+  const totalNews = current.sections.newsAlerts.length
+  const totalMeetings = current.sections.meetings.length
+  const totalPersonal = current.sections.personal.length
 
   return (
     <div className="p-6 lg:p-8 space-y-8">

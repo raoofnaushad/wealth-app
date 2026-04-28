@@ -1,5 +1,5 @@
 import { http, HttpResponse, delay } from 'msw'
-import { DAILY_SUMMARIES } from './data/dailySummaries'
+import { DAILY_SUMMARIES, createTodaySummary, TODAY } from './data/dailySummaries'
 import { getMeetingBriefById } from './data/meetingBriefs'
 import {
   MOCK_ORG_PROFILE,
@@ -30,6 +30,9 @@ import {
 import type { OrgProfile, OrgBranding, OrgPreferences, InviteUserRequest, ModuleRoleAssignment } from '@/modules/admin/types'
 import type { InvestmentType, DocumentTemplate, Mandate, Opportunity, AssetManager, EmailAccount, SyncedEmail, GoogleDriveAccount, GoogleDriveImportJob } from '@/modules/deals/types'
 import type { WorkspaceDocument, DocumentReview, DocumentShare, MockApprovalRequest } from './data/deals'
+
+// Daily summaries mutable state
+const dailySummaries = [...DAILY_SUMMARIES]
 
 // Deals mutable state
 const investmentTypes = [...MOCK_INVESTMENT_TYPES]
@@ -63,11 +66,14 @@ export const handlers = [
 
   http.get('/api/daily-summaries', async () => {
     await delay(300)
-    return HttpResponse.json(DAILY_SUMMARIES)
+    return HttpResponse.json(dailySummaries)
   }),
 
   http.post('/api/daily-summaries/generate', async () => {
-    await delay(300)
+    await delay(1200)
+    if (!dailySummaries.find((s) => s.date === TODAY)) {
+      dailySummaries.unshift(createTodaySummary())
+    }
     return HttpResponse.json({ runId: `sum-${Date.now()}` }, { status: 202 })
   }),
 
