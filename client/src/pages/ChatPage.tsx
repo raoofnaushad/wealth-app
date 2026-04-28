@@ -74,8 +74,8 @@ function HistorySidebar({
 
 export function ChatPage() {
   const {
-    messages, isLoading, history, activeThreadId,
-    sendMessage, newChat, loadThread, deleteThread,
+    messages, isLoading, history, activeThreadId, enabledMcps,
+    sendMessage, newChat, loadThread, deleteThread, setEnabledMcps,
   } = useChatStore()
   const bottomRef = useRef<HTMLDivElement>(null)
   const [showSidebar, setShowSidebar] = useState(true)
@@ -146,7 +146,7 @@ export function ChatPage() {
 
         {/* Input */}
         <div className="max-w-3xl mx-auto w-full pb-4">
-          <ChatInput onSend={sendMessage} disabled={isLoading} />
+          <ChatInput onSend={sendMessage} disabled={isLoading} enabledMcps={enabledMcps} onMcpsChange={setEnabledMcps} />
         </div>
       </div>
     </div>

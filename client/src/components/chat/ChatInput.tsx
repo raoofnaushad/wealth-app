@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { LLMConfig } from '@/api/types'
+import { cn } from '@/lib/utils'
 
 interface ModelOption {
   id: string
@@ -38,12 +39,20 @@ const COPILOT_MODELS: { group: string; models: ModelOption[] }[] = [
 
 const ALL_MODELS = COPILOT_MODELS.flatMap((g) => g.models)
 
+const MCP_MODULES = [
+  { id: 'engage', label: 'Engage', dot: 'bg-blue-500' },
+  { id: 'plan', label: 'Plan', dot: 'bg-violet-500' },
+  { id: 'insights', label: 'Insights', dot: 'bg-emerald-500' },
+]
+
 interface ChatInputProps {
   onSend: (message: string, llmConfig?: LLMConfig) => void
   disabled?: boolean
+  enabledMcps: string[]
+  onMcpsChange: (mcps: string[]) => void
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, enabledMcps, onMcpsChange }: ChatInputProps) {
   const [value, setValue] = useState('')
   const [selectedModelId, setSelectedModelId] = useState('claude-haiku')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -64,6 +73,15 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     setValue('')
   }
 
+  function toggleMcp(id: string) {
+    if (enabledMcps.includes(id)) {
+      if (enabledMcps.length === 1) return
+      onMcpsChange(enabledMcps.filter((m) => m !== id))
+    } else {
+      onMcpsChange([...enabledMcps, id])
+    }
+  }
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -73,6 +91,29 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
 
   return (
     <div className="border-t border-border">
+      {/* Module toggles */}
+      <div className="flex items-center gap-1.5 px-3 pt-2">
+        {MCP_MODULES.map((mod) => {
+          const active = enabledMcps.includes(mod.id)
+          return (
+            <button
+              key={mod.id}
+              type="button"
+              onClick={() => toggleMcp(mod.id)}
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors',
+                active
+                  ? 'bg-accent text-foreground'
+                  : 'border border-border text-muted-foreground hover:text-foreground hover:bg-accent/50'
+              )}
+            >
+              <span className={cn('h-1.5 w-1.5 rounded-full', active ? mod.dot : 'bg-muted-foreground/40')} />
+              {mod.label}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Model selector */}
       <div className="px-3 pt-2">
         <DropdownMenu>

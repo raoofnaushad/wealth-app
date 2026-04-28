@@ -432,6 +432,7 @@ export interface CopilotRequest {
   source_module?: 'engage' | 'deals' | 'plan' | 'insights' | 'portal'
   context?: Record<string, unknown>
   llm_config?: LLMConfig
+  enabled_mcps?: string[]
 }
 
 export interface LLMConfig {

@@ -72,8 +72,8 @@ function ChatHistoryList({
 
 export function ChatPanel() {
   const {
-    messages, isOpen, isLoading, showHistory, history,
-    close, sendMessage, newChat, loadThread, deleteThread, toggleHistory,
+    messages, isOpen, isLoading, showHistory, history, enabledMcps,
+    close, sendMessage, newChat, loadThread, deleteThread, toggleHistory, setEnabledMcps,
   } = useChatStore()
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -152,7 +152,7 @@ export function ChatPanel() {
 
           {/* Input */}
           <div className="min-w-[380px] shrink-0">
-            <ChatInput onSend={sendMessage} disabled={isLoading} />
+            <ChatInput onSend={sendMessage} disabled={isLoading} enabledMcps={enabledMcps} onMcpsChange={setEnabledMcps} />
           </div>
         </>
       )}

@@ -24,6 +24,7 @@ interface ChatState {
   isOpen: boolean
   isLoading: boolean
   error: string | null
+  enabledMcps: string[]
 
   toggle: () => void
   open: () => void
@@ -32,6 +33,7 @@ interface ChatState {
   loadThread: (threadId: string) => void
   deleteThread: (threadId: string) => void
   toggleHistory: () => void
+  setEnabledMcps: (mcps: string[]) => void
   sendMessage: (content: string, llmConfig?: LLMConfig) => void
   submitFeedback: (messageId: string, rating: 'positive' | 'negative') => Promise<void>
 }
@@ -71,6 +73,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isOpen: false,
   isLoading: false,
   error: null,
+  enabledMcps: ['engage', 'plan', 'insights'],
 
   toggle: () => set((s) => ({ isOpen: !s.isOpen })),
   open: () => set({ isOpen: true }),
@@ -156,8 +159,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   toggleHistory: () => set((s) => ({ showHistory: !s.showHistory })),
 
+  setEnabledMcps: (mcps: string[]) => set({ enabledMcps: mcps }),
+
   sendMessage: async (content: string, llmConfig?: LLMConfig) => {
-    const { conversationId } = get()
+    const { conversationId, enabledMcps } = get()
 
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -186,13 +191,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }))
 
     try {
+      const derivedSourceModule = enabledMcps.length === 1
+        ? enabledMcps[0] as 'engage' | 'deals' | 'plan' | 'insights' | 'portal'
+        : getSourceModule()
+
       const run = await askCopilot(
         {
           message: content,
           workflow: 'copilot',
           conversation_id: conversationId,
-          source_module: getSourceModule(),
+          source_module: derivedSourceModule,
           llm_config: llmConfig,
+          enabled_mcps: enabledMcps,
         },
         (progressRun) => {
           if (progressRun.status === 'running' && progressRun.steps.length > 0) {
