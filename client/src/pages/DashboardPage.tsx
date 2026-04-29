@@ -126,56 +126,6 @@ export function DashboardPage() {
     return <LoadingScreen message="Loading your daily brief..." fullScreen={false} />
   }
 
-  // No brief for today yet (selectedDate is null = today slot with no brief)
-  if (!hasTodayBrief && viewingTodaySlot) {
-    return (
-      <div className="p-6 lg:p-8 space-y-6">
-        {/* Thin nav row so user can still browse past briefs */}
-        {sortedSummaries.length > 0 && (
-          <div className="flex items-center gap-2">
-            <p className="text-sm text-muted-foreground tabular-nums min-w-[180px]">
-              {format(new Date(), "EEEE, do MMMM")}
-            </p>
-            <button
-              type="button"
-              onClick={() => setSelectedDate(sortedSummaries[0].date)}
-              className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-            >
-              View past briefs
-            </button>
-          </div>
-        )}
-
-        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-          <div className="max-w-md space-y-5">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-              <RefreshCw className="h-8 w-8 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold">No brief yet for today</h2>
-              <p className="text-sm text-muted-foreground">
-                Generate your daily brief to see portfolio alerts, meetings, news, and action items for {format(new Date(), 'EEEE, do MMMM')}.
-              </p>
-            </div>
-            {generateError && <p className="text-xs text-destructive">{generateError}</p>}
-            <Button onClick={handleGenerate} disabled={generating} size="lg" className="gap-2">
-              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              {generating ? 'Generating…' : "Generate Today's Brief"}
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!current) return null
-
-  const totalAlerts = current.sections.portfolioAlerts.length
-  const totalActions = current.sections.actionItems.length
-  const totalNews = current.sections.newsAlerts.length
-  const totalMeetings = current.sections.meetings.length
-  const totalPersonal = current.sections.personal.length
-
   return (
     <div className="p-6 lg:p-8 space-y-6">
       {/* Tab switcher */}
@@ -209,151 +159,191 @@ export function DashboardPage() {
       {activeTab === 'client360' ? (
         <Client360Tab />
       ) : (
-      <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <button
-            type="button"
-            onClick={goPrev}
-            disabled={!canGoPrev}
-            aria-label="Previous day"
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <p className="text-sm text-muted-foreground tabular-nums min-w-[180px] text-center">
-            {format(parseISO(current.date), "EEEE, do MMMM")}
-          </p>
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={!canGoNext}
-            aria-label="Next day"
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-          <Button
-            type="button"
-            onClick={goToday}
-            disabled={isToday}
-            variant="secondary"
-            size="sm"
-            className="ml-auto h-7"
-          >
-            Today
-          </Button>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <span className="inline-flex">
-                    <Button
-                      type="button"
-                      onClick={handleGenerate}
-                      disabled={!isToday || generating}
-                      variant="default"
-                      size="sm"
-                      className="ml-1 h-7 gap-1.5"
-                    >
-                      {generating ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-3.5 w-3.5" />
-                      )}
-                      {generating ? 'Generating…' : "Generate today's brief"}
-                    </Button>
-                  </span>
-                }
-              />
-              {!isToday && (
-                <TooltipContent side="bottom">Available on today's brief only</TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+        /* Your Daily tab */
+        (!hasTodayBrief && viewingTodaySlot) || !current ? (
+          <div className="space-y-6">
+            {/* Thin nav row so user can still browse past briefs */}
+            {sortedSummaries.length > 0 && (
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground tabular-nums min-w-[180px]">
+                  {format(new Date(), "EEEE, do MMMM")}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(sortedSummaries[0].date)}
+                  className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+                >
+                  View past briefs
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+              <div className="max-w-md space-y-5">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                  <RefreshCw className="h-8 w-8 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">No brief yet for today</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Generate your daily brief to see portfolio alerts, meetings, news, and action items for {format(new Date(), 'EEEE, do MMMM')}.
+                  </p>
+                </div>
+                {generateError && <p className="text-xs text-destructive">{generateError}</p>}
+                <Button onClick={handleGenerate} disabled={generating} size="lg" className="gap-2">
+                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  {generating ? 'Generating…' : "Generate Today's Brief"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+        <div className="space-y-8">
+        {/* Header */}
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <button
+              type="button"
+              onClick={goPrev}
+              disabled={!canGoPrev}
+              aria-label="Previous day"
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <p className="text-sm text-muted-foreground tabular-nums min-w-[180px] text-center">
+              {format(parseISO(current.date), "EEEE, do MMMM")}
+            </p>
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={!canGoNext}
+              aria-label="Next day"
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <Button
+              type="button"
+              onClick={goToday}
+              disabled={isToday}
+              variant="secondary"
+              size="sm"
+              className="ml-auto h-7"
+            >
+              Today
+            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <span className="inline-flex">
+                      <Button
+                        type="button"
+                        onClick={handleGenerate}
+                        disabled={!isToday || generating}
+                        variant="default"
+                        size="sm"
+                        className="ml-1 h-7 gap-1.5"
+                      >
+                        {generating ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        )}
+                        {generating ? 'Generating…' : "Generate today's brief"}
+                      </Button>
+                    </span>
+                  }
+                />
+                {!isToday && (
+                  <TooltipContent side="bottom">Available on today's brief only</TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {getGreeting()} {user?.name?.split(' ')[0] || 'James'},
+            </h1>
+          </div>
+          {generateError && (
+            <p className="text-xs text-destructive mt-1">{generateError}</p>
+          )}
+
+          {/* Stats ribbon */}
+          <div className="flex items-center gap-6 mt-4 py-3 px-5 rounded-xl bg-white dark:bg-card border border-border/60 shadow-sm w-fit">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">{current.sections.portfolioAlerts.length}</span>
+              <span className="text-sm text-muted-foreground">Alerts</span>
+            </div>
+            <div className="w-px h-5 bg-border" />
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">{current.sections.actionItems.length}</span>
+              <span className="text-sm text-muted-foreground">Action Items</span>
+            </div>
+            <div className="w-px h-5 bg-border" />
+            <div className="flex items-center gap-2">
+              <Newspaper className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">{current.sections.newsAlerts.length}</span>
+              <span className="text-sm text-muted-foreground">News Alerts</span>
+            </div>
+            <div className="w-px h-5 bg-border" />
+            <div className="flex items-center gap-2">
+              <Loader className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">{current.sections.meetings.length}</span>
+              <span className="text-sm text-muted-foreground">Meetings</span>
+            </div>
+            <div className="w-px h-5 bg-border" />
+            <div className="flex items-center gap-2">
+              <Heart className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">{current.sections.personal.length}</span>
+              <span className="text-sm text-muted-foreground">Personal Touch</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {getGreeting()} {user?.name?.split(' ')[0] || 'James'},
-          </h1>
-        </div>
-        {generateError && (
-          <p className="text-xs text-destructive mt-1">{generateError}</p>
+
+        {!isToday && (
+          <div className="flex items-center justify-between bg-muted/40 border border-border/60 rounded-lg px-4 py-2.5">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Info className="h-4 w-4" />
+              <span>
+                Viewing {format(parseISO(current.date), "EEEE, do MMMM")} —{' '}
+                {formatDistanceToNowStrict(parseISO(current.date), { addSuffix: true, unit: 'day', roundingMethod: 'floor' })}.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={goToday}
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Back to today
+            </button>
+          </div>
         )}
 
-        {/* Stats ribbon */}
-        <div className="flex items-center gap-6 mt-4 py-3 px-5 rounded-xl bg-white dark:bg-card border border-border/60 shadow-sm w-fit">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-semibold">{totalAlerts}</span>
-            <span className="text-sm text-muted-foreground">Alerts</span>
+        {/* Relationship Pool */}
+        <RelationshipPool pool={current.relationshipPool} />
+
+        {/* Main grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <PortfolioAlerts alerts={current.sections.portfolioAlerts} onAction={openAction} />
+            <ActionItems items={current.sections.actionItems} onAction={openAction} />
+            <PersonalTouch items={current.sections.personal} onAction={openAction} />
           </div>
-          <div className="w-px h-5 bg-border" />
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-semibold">{totalActions}</span>
-            <span className="text-sm text-muted-foreground">Action Items</span>
-          </div>
-          <div className="w-px h-5 bg-border" />
-          <div className="flex items-center gap-2">
-            <Newspaper className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-semibold">{totalNews}</span>
-            <span className="text-sm text-muted-foreground">News Alerts</span>
-          </div>
-          <div className="w-px h-5 bg-border" />
-          <div className="flex items-center gap-2">
-            <Loader className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-semibold">{totalMeetings}</span>
-            <span className="text-sm text-muted-foreground">Meetings</span>
-          </div>
-          <div className="w-px h-5 bg-border" />
-          <div className="flex items-center gap-2">
-            <Heart className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-semibold">{totalPersonal}</span>
-            <span className="text-sm text-muted-foreground">Personal Touch</span>
+          <div className="space-y-6">
+            <NewsAlerts alerts={current.sections.newsAlerts} onAction={openAction} />
+            <Meetings meetings={current.sections.meetings} advisorName={advisorName} />
           </div>
         </div>
-      </div>
 
-      {!isToday && (
-        <div className="flex items-center justify-between bg-muted/40 border border-border/60 rounded-lg px-4 py-2.5">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Info className="h-4 w-4" />
-            <span>
-              Viewing {format(parseISO(current.date), "EEEE, do MMMM")} —{' '}
-              {formatDistanceToNowStrict(parseISO(current.date), { addSuffix: true, unit: 'day', roundingMethod: 'floor' })}.
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={goToday}
-            className="text-sm font-medium text-primary hover:underline"
-          >
-            Back to today
-          </button>
+        {/* Action Modal */}
+        <ActionModal context={actionModal} onClose={() => setActionModal({ type: null })} />
         </div>
-      )}
-
-      {/* Relationship Pool */}
-      <RelationshipPool pool={current.relationshipPool} />
-
-      {/* Main grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          <PortfolioAlerts alerts={current.sections.portfolioAlerts} onAction={openAction} />
-          <ActionItems items={current.sections.actionItems} onAction={openAction} />
-          <PersonalTouch items={current.sections.personal} onAction={openAction} />
-        </div>
-        <div className="space-y-6">
-          <NewsAlerts alerts={current.sections.newsAlerts} onAction={openAction} />
-          <Meetings meetings={current.sections.meetings} advisorName={advisorName} />
-        </div>
-      </div>
-
-      {/* Action Modal */}
-      <ActionModal context={actionModal} onClose={() => setActionModal({ type: null })} />
-      </div>
+        )
       )}
     </div>
   )
