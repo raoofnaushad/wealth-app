@@ -606,6 +606,59 @@ export interface Client360Planning {
   deploymentByAssetClass: Client360PlanningEntry[]
 }
 
+export interface Client360NewsAffectedClient {
+  client_name: string
+  impact: string
+}
+
+export interface Client360NewsAlert {
+  url: string
+  title: string
+  source: string
+  summary: string
+  priority: number
+  affected_clients: Client360NewsAffectedClient[]
+}
+
+export type Client360ActionItemUrgency = 'critical' | 'high' | 'medium' | 'low'
+
+export interface Client360ActionItem {
+  title: string
+  source: string
+  urgency: Client360ActionItemUrgency
+  category: string
+  priority: number
+  description: string
+  recommended_next_step: string
+}
+
+export interface Client360PortfolioAlert {
+  issue: string
+  action: string
+  clients: string[]
+  category: string
+  reasoning: string
+}
+
+export interface Client360Discrepancy {
+  type: string
+  issue: string
+  clients: string[]
+  reasoning: string
+}
+
+export interface Client360Meeting {
+  id: string | null
+  end: string
+  start: string
+  title: string
+  source: string
+  location: string
+  attendees: string[]
+  organizer: string
+  meeting_link: string
+}
+
 export interface Client360Output {
   clients: Client360Clients | Client360ErrorEnvelope
   prospects: Client360Prospects | Client360ErrorEnvelope
@@ -614,4 +667,16 @@ export interface Client360Output {
   prospects_warnings: Array<{ field: string; message: string }>
   planning_warnings: Array<{ field: string; message: string }>
   run_summary: string
+  news_alerts?: Client360NewsAlert[]
+  action_items?: Client360ActionItem[]
+  portfolio_alerts?: Client360PortfolioAlert[]
+  discrepancies?: Client360Discrepancy[]
+  meetings_today?: Client360Meeting[]
+  meetings_tomorrow?: Client360Meeting[]
+  internal_meetings_today?: Client360Meeting[]
+  internal_meetings_tomorrow?: Client360Meeting[]
+  meetings_warnings?: Array<{ field: string; message: string }>
+  news_alerts_warnings?: string[]
+  action_items_warnings?: Array<{ field: string; message: string }>
+  portfolio_alerts_warnings?: Array<{ field: string; message: string }>
 }

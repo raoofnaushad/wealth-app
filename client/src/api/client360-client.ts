@@ -62,8 +62,8 @@ export async function pollClient360Run(
   runId: string,
   onStep?: (run: AgentRunResponse) => void,
 ): Promise<AgentRunResponse> {
-  const INTERVAL_MS = 1000
-  const TIMEOUT_MS = 30_000
+  const INTERVAL_MS = 3_000
+  const TIMEOUT_MS = 5 * 60_000
   const deadline = Date.now() + TIMEOUT_MS
 
   while (Date.now() < deadline) {
@@ -73,7 +73,7 @@ export async function pollClient360Run(
     if (TERMINAL_STATUSES.includes(run.status)) return run
   }
 
-  throw new Client360Error(408, 'Client 360 request timed out after 30 seconds')
+  throw new Client360Error(408, 'Client 360 request timed out after 5 minutes')
 }
 
 /** Extract and cast the output to Client360Output.
