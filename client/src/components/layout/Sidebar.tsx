@@ -158,17 +158,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     <aside className={cn('border-r border-border bg-sidebar flex flex-col shrink-0 transition-all duration-200', collapsed ? 'w-14' : 'w-56')}>
       <nav className="flex-1 py-3 px-2 space-y-1">
         {GLOBAL_NAV.map(renderNavItem)}
-        {accessibleModules.length > 0 && (
-          <>
-            {!collapsed && (
-              <div className="px-2.5 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Modules
-              </div>
-            )}
-            {collapsed && <div className="my-2 mx-2 border-t border-border" />}
-            {accessibleModules.map(renderNavItem)}
-          </>
-        )}
       </nav>
       {isOrgAdmin && (
         <div className="px-2 py-1 border-t border-border">
