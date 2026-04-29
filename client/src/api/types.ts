@@ -516,3 +516,71 @@ export interface LLMModel {
   vendor: string
   supports_tools?: boolean
 }
+
+// ── Client 360 ────────────────────────────────────────────────────
+
+export interface Client360AumEntry {
+  assetClassAum: number
+  assetClassName: string
+  assetClassAumPercentage: number
+}
+
+export interface Client360Clients {
+  aum: {
+    clientsAum: number
+    clientsAumGrowth: number
+    clientsAumPreviousPeriod: number
+  }
+  count: {
+    clients: number
+    newClientsGrowth: number
+  }
+  partial: boolean
+  aum_by_asset_class: Client360AumEntry[]
+}
+
+export interface Client360ProspectSegment {
+  lowRange: number
+  highRange?: number
+  segmentName: string
+  prospectsCount: number
+}
+
+export interface Client360Prospects {
+  partial: boolean
+  pipeline: {
+    proposal: number
+    agreement: number
+    converted: number
+    qualified: number
+    inProgress: number
+    preApproved: number
+    newProspects: number
+    engagementLetter: number
+    estimatedWealthCurrent: number
+    estimatedWealthPrevious: number
+    prospectTimelineCurrent: number
+    prospectTimelinePrevious: number
+    potentialInvestableCapitalCurrent: number
+    potentialInvestableCapitalPrevious: number
+  }
+  segments: Client360ProspectSegment[]
+  count_metrics: {
+    companyCount: number
+    userTeamCount: number
+    currentUserCount: number
+  }
+}
+
+export interface Client360ErrorEnvelope {
+  error: string
+  message: string
+}
+
+export interface Client360Output {
+  clients: Client360Clients | Client360ErrorEnvelope
+  prospects: Client360Prospects | Client360ErrorEnvelope
+  clients_warnings: Array<{ field: string; message: string }>
+  prospects_warnings: Array<{ field: string; message: string }>
+  run_summary: string
+}
