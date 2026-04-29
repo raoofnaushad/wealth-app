@@ -53,7 +53,7 @@ async function c360Fetch<T>(path: string, options?: RequestInit): Promise<T> {
 
 /** Trigger the client_360 workflow — returns run_id immediately */
 export function triggerClient360(): Promise<{ run_id: string; status: string }> {
-  return c360Fetch('/agents/client_360/run', { method: 'POST' })
+  return c360Fetch('/agents/client_360/run', { method: 'POST', body: '{}' })
 }
 
 /** Poll a client_360 run until terminal status.
