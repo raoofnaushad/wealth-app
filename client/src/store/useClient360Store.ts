@@ -40,7 +40,14 @@ export const useClient360Store = create<Client360State>((set) => ({
       const output = parseClient360Output(run)
       set({ status: 'complete', output, steps: run.steps ?? [] })
     } catch (err) {
-      const message = err instanceof Client360Error ? err.message : 'An unexpected error occurred'
+      const message =
+        err instanceof Client360Error
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : typeof err === 'string'
+              ? err
+              : 'An unexpected error occurred'
       set({ status: 'failed', error: message })
     }
   },

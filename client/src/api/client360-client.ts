@@ -43,7 +43,8 @@ async function c360Fetch<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    const detail = (body as { detail?: string }).detail
+    const rawDetail = (body as { detail?: unknown }).detail
+    const detail = typeof rawDetail === 'string' ? rawDetail : rawDetail ? JSON.stringify(rawDetail) : null
     throw new Client360Error(res.status, detail || `Request failed: ${res.status}`)
   }
 
