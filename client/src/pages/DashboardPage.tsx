@@ -40,8 +40,8 @@ export function DashboardPage() {
         const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date))
         const today = format(new Date(), 'yyyy-MM-dd')
         const todayEntry = sorted.find((s) => s.date === today)
-        // Default to today if it exists; otherwise stay on null to show empty state for today
-        setSelectedDate(todayEntry?.date ?? null)
+        // Default to today if it exists; otherwise show the most recent past brief
+        setSelectedDate(todayEntry?.date ?? sorted[0]?.date ?? null)
         setLoading(false)
       })
       .catch(() => {
