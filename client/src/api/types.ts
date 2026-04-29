@@ -577,10 +577,41 @@ export interface Client360ErrorEnvelope {
   message: string
 }
 
+export interface Client360PlanningEntry {
+  assetClassName: string
+  commitment_gap: number
+  deployment_gap: number
+  clientDeployment: number
+  clientCommitments: number
+  clientTargetDeployment: number
+}
+
+export interface Client360Planning {
+  period: string
+  partial: boolean
+  ipsMetrics: {
+    total: number
+    signed: number
+    pending: number
+    inProgress: number
+  }
+  commitment_gap: number
+  deployment_gap: number
+  deploymentSummary: {
+    deploymentGap: number
+    totalDeployed: number
+    totalCommitments: number
+    totalTargetDeployment: number
+  }
+  deploymentByAssetClass: Client360PlanningEntry[]
+}
+
 export interface Client360Output {
   clients: Client360Clients | Client360ErrorEnvelope
   prospects: Client360Prospects | Client360ErrorEnvelope
+  planning: Client360Planning | Client360ErrorEnvelope
   clients_warnings: Array<{ field: string; message: string }>
   prospects_warnings: Array<{ field: string; message: string }>
+  planning_warnings: Array<{ field: string; message: string }>
   run_summary: string
 }
