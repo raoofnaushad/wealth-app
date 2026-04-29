@@ -14,6 +14,9 @@ import {
   ArrowUpRight,
   ExternalLink,
   Calendar,
+  ShieldAlert,
+  CheckCircle2,
+  Newspaper,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FlipCard } from './FlipCard'
@@ -759,14 +762,51 @@ interface Client360ResultsProps {
 export function Client360Results({ output }: Client360ResultsProps) {
   const [summaryOpen, setSummaryOpen] = useState(false)
 
+  const portfolioAlerts = output.portfolio_alerts ?? []
+  const actionItems = output.action_items ?? []
+  const newsAlerts = output.news_alerts ?? []
+  const meetingsAll = [
+    ...(output.meetings_today ?? []),
+    ...(output.meetings_tomorrow ?? []),
+    ...(output.internal_meetings_today ?? []),
+    ...(output.internal_meetings_tomorrow ?? []),
+  ]
+
   return (
     <div className="space-y-8">
-      <ActionItemsSection items={output.action_items ?? []} />
-      <PortfolioAlertsSection alerts={output.portfolio_alerts ?? []} />
+      {/* Stats ribbon — mirrors Your Daily */}
+      <div className="flex items-center gap-6 py-3 px-5 rounded-xl bg-white dark:bg-card border border-border/60 shadow-sm w-fit">
+        <div className="flex items-center gap-2">
+          <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-semibold">{portfolioAlerts.length}</span>
+          <span className="text-sm text-muted-foreground">Alerts</span>
+        </div>
+        <div className="w-px h-5 bg-border" />
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-semibold">{actionItems.length}</span>
+          <span className="text-sm text-muted-foreground">Action Items</span>
+        </div>
+        <div className="w-px h-5 bg-border" />
+        <div className="flex items-center gap-2">
+          <Newspaper className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-semibold">{newsAlerts.length}</span>
+          <span className="text-sm text-muted-foreground">News Alerts</span>
+        </div>
+        <div className="w-px h-5 bg-border" />
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-semibold">{meetingsAll.length}</span>
+          <span className="text-sm text-muted-foreground">Meetings</span>
+        </div>
+      </div>
+
       <ClientsSection clients={output.clients} warnings={output.clients_warnings} />
       <ProspectsSection prospects={output.prospects} warnings={output.prospects_warnings} />
       <PlanningSection planning={output.planning} warnings={output.planning_warnings} />
-      <NewsAlertsSection alerts={output.news_alerts ?? []} />
+      <PortfolioAlertsSection alerts={portfolioAlerts} />
+      <ActionItemsSection items={actionItems} />
+      <NewsAlertsSection alerts={newsAlerts} />
       <DiscrepanciesSection items={output.discrepancies ?? []} />
       <MeetingsSection
         today={output.meetings_today ?? []}
