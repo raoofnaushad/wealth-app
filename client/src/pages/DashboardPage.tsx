@@ -3,6 +3,7 @@ import { format, formatDistanceToNowStrict, parseISO } from 'date-fns'
 import { Clock, CheckCircle2, Loader, Newspaper, Heart, ChevronLeft, ChevronRight, RefreshCw, Loader2, Info } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { summariesApi } from '@/api/endpoints'
+import { cn } from '@/lib/utils'
 import { LoadingScreen } from '@/components/shared/LoadingScreen'
 import { RelationshipPool } from '@/components/insights/RelationshipPool'
 import { PortfolioAlerts } from '@/components/insights/PortfolioAlerts'
@@ -11,6 +12,7 @@ import { ActionItems } from '@/components/insights/ActionItems'
 import { Meetings } from '@/components/insights/Meetings'
 import { PersonalTouch } from '@/components/insights/PersonalTouch'
 import { ActionModal } from '@/components/insights/ActionModal'
+import { Client360Tab } from '@/components/insights/Client360Tab'
 import type { DailySummary, ActionModalContext, ActionModalType } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
@@ -23,6 +25,7 @@ export function DashboardPage() {
   const [actionModal, setActionModal] = useState<ActionModalContext>({ type: null })
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'daily' | 'client360'>('daily')
 
   const todayStr = format(new Date(), 'yyyy-MM-dd')
 
@@ -174,7 +177,39 @@ export function DashboardPage() {
   const totalPersonal = current.sections.personal.length
 
   return (
-    <div className="p-6 lg:p-8 space-y-8">
+    <div className="p-6 lg:p-8 space-y-6">
+      {/* Tab switcher */}
+      <div className="flex items-center gap-1 border-b pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('daily')}
+          className={cn(
+            'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+            activeTab === 'daily'
+              ? 'bg-muted text-foreground'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
+          )}
+        >
+          Your Daily
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('client360')}
+          className={cn(
+            'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+            activeTab === 'client360'
+              ? 'bg-muted text-foreground'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
+          )}
+        >
+          Client 360
+        </button>
+      </div>
+
+      {activeTab === 'client360' ? (
+        <Client360Tab />
+      ) : (
+      <div className="space-y-8">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
@@ -318,6 +353,8 @@ export function DashboardPage() {
 
       {/* Action Modal */}
       <ActionModal context={actionModal} onClose={() => setActionModal({ type: null })} />
+      </div>
+      )}
     </div>
   )
 }
