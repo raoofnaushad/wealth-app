@@ -32,8 +32,8 @@ export const useClient360Store = create<Client360State>((set) => ({
         set({ steps: partial.steps ?? [] })
       })
 
-      if (run.status === 'failed') {
-        set({ status: 'failed', error: run.error ?? 'Run failed', steps: run.steps ?? [] })
+      if (run.status === 'failed' || run.status === 'cancelled') {
+        set({ status: 'failed', error: run.error ?? (run.status === 'cancelled' ? 'Run was cancelled' : 'Run failed'), steps: run.steps ?? [] })
         return
       }
 

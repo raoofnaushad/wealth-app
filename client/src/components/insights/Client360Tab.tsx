@@ -5,7 +5,7 @@ import { Client360StepProgress } from './Client360StepProgress'
 import { Client360Results } from './Client360Results'
 
 export function Client360Tab() {
-  const { status, steps, output, error, trigger, reset } = useClient360Store()
+  const { status, steps, output, error, trigger } = useClient360Store()
 
   if (status === 'idle') {
     return (
@@ -37,7 +37,7 @@ export function Client360Tab() {
           <p className="text-sm font-medium text-foreground">Something went wrong</p>
           <p className="text-xs text-muted-foreground mt-1 max-w-xs">{error}</p>
         </div>
-        <Button onClick={() => { reset(); trigger() }} size="sm" variant="secondary">
+        <Button onClick={() => trigger()} size="sm" variant="secondary">
           Try again
         </Button>
       </div>
@@ -51,7 +51,7 @@ export function Client360Tab() {
     <div className="space-y-6">
       <div className="flex items-center justify-end">
         <Button
-          onClick={() => { reset(); trigger() }}
+          onClick={() => trigger()}
           size="sm"
           variant="secondary"
           className="gap-1.5"

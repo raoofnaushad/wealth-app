@@ -19,10 +19,12 @@ interface Client360StepProgressProps {
 }
 
 export function Client360StepProgress({ steps }: Client360StepProgressProps) {
-  const completedNodes = new Set(
-    steps.filter((s) => s.status === 'complete').map((s) => s.node)
-  )
-  const runningNode = steps.find((s) => s.status === 'running')?.node ?? null
+  // Build the display sequence: known steps in order, plus any unexpected steps from the API
+  const apiNodes = steps.map((s) => s.node)
+  const extraNodes = apiNodes.filter((n) => !STEP_SEQUENCE.includes(n as typeof STEP_SEQUENCE[number]))
+  const displaySequence = [...STEP_SEQUENCE, ...extraNodes]
+
+  const stepByNode = new Map(steps.map((s) => [s.node, s]))
 
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-8">
@@ -31,9 +33,10 @@ export function Client360StepProgress({ steps }: Client360StepProgressProps) {
         <p className="text-xs text-muted-foreground mt-1">Fetching live data from Engage…</p>
       </div>
       <ol className="flex flex-col gap-3 w-full max-w-xs">
-        {STEP_SEQUENCE.map((node) => {
-          const isDone = completedNodes.has(node)
-          const isRunning = runningNode === node
+        {displaySequence.map((node) => {
+          const step = stepByNode.get(node)
+          const isDone = step?.status === 'complete'
+          const isRunning = step?.status === 'running'
           const isPending = !isDone && !isRunning
 
           return (

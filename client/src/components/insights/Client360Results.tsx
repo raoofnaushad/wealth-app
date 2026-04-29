@@ -15,7 +15,14 @@ function formatCurrency(value: number): string {
 }
 
 function TrendBadge({ value, suffix = '%' }: { value: number; suffix?: string }) {
-  const positive = value >= 0
+  if (value === 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+        0{suffix}
+      </span>
+    )
+  }
+  const positive = value > 0
   return (
     <span
       className={cn(
@@ -102,7 +109,7 @@ function ClientsSection({
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                     <div
                       className="h-full rounded-full bg-primary/70"
-                      style={{ width: `${entry.assetClassAumPercentage}%` }}
+                      style={{ width: `${Math.min(100, entry.assetClassAumPercentage)}%` }}
                     />
                   </div>
                 </div>
@@ -151,7 +158,11 @@ function ProspectsSection({
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl border bg-card p-4 space-y-1">
           <p className="text-xs text-muted-foreground">Total Prospects</p>
-          <p className="text-2xl font-bold tabular-nums">{prospects.pipeline.prospectTimelineCurrent}</p>
+          <p className="text-2xl font-bold tabular-nums">
+            {prospects.pipeline.newProspects + prospects.pipeline.inProgress + prospects.pipeline.qualified +
+             prospects.pipeline.proposal + prospects.pipeline.agreement + prospects.pipeline.engagementLetter +
+             prospects.pipeline.converted + prospects.pipeline.preApproved}
+          </p>
         </div>
         <div className="rounded-xl border bg-card p-4 space-y-1">
           <p className="text-xs text-muted-foreground">Potential Capital</p>
@@ -212,6 +223,7 @@ export function Client360Results({ output }: Client360ResultsProps) {
         <button
           type="button"
           onClick={() => setSummaryOpen((v) => !v)}
+          aria-expanded={summaryOpen}
           className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           View run summary
