@@ -1,55 +1,14 @@
 import { useState } from 'react'
-import {
-  Users, Wallet, Target, DollarSign, ArrowUpRight, ArrowDownRight,
-  ChevronDown, ChevronUp, AlertTriangle, TrendingUp, TrendingDown,
-} from 'lucide-react'
+import { Users, Wallet, Target, DollarSign, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FlipCard } from './FlipCard'
+import { CARD, GAP_COLORS, isErrorEnvelope, formatCurrency, TrendBadge, WarningBanner } from './client360-shared'
 import type {
   Client360Clients,
   Client360Prospects,
   Client360Planning,
   Client360ErrorEnvelope,
 } from '@/api/types'
-
-const CARD = 'rounded-xl bg-white dark:bg-card border border-border/60 shadow-sm'
-const GAP_COLORS = ['#6366f1', '#3b82f6', '#14b8a6', '#f59e0b', '#f43f5e', '#8b5cf6', '#10b981']
-
-function isErrorEnvelope(v: unknown): v is Client360ErrorEnvelope {
-  return typeof v === 'object' && v !== null && 'error' in v
-}
-
-function formatCurrency(value: number): string {
-  if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(2)}B`
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
-  if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`
-  return `$${value.toFixed(0)}`
-}
-
-function TrendBadge({ value, suffix = '%' }: { value: number; suffix?: string }) {
-  if (value === 0) return <span className="text-xs font-medium text-muted-foreground">0{suffix}</span>
-  const positive = value > 0
-  return (
-    <span className={cn('inline-flex items-center gap-0.5 text-xs font-medium', positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
-      {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-      {positive ? '+' : ''}{value.toFixed(1)}{suffix}
-    </span>
-  )
-}
-
-function WarningBanner({ warnings }: { warnings: Array<{ field: string; message: string }> }) {
-  if (!warnings.length) return null
-  return (
-    <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 p-3 mb-4">
-      <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-      <div className="text-xs text-amber-700 dark:text-amber-400 space-y-0.5">
-        {warnings.map((w, i) => (
-          <p key={i}><span className="font-medium">{w.field}:</span> {w.message}</p>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 // ── Clients Tab ───────────────────────────────────────────────────────────────
 
@@ -430,18 +389,18 @@ interface RelationshipPool360Props {
   clients: Client360Clients | Client360ErrorEnvelope
   prospects: Client360Prospects | Client360ErrorEnvelope
   planning: Client360Planning | Client360ErrorEnvelope
-  clients_warnings: Array<{ field: string; message: string }>
-  prospects_warnings: Array<{ field: string; message: string }>
-  planning_warnings: Array<{ field: string; message: string }>
+  clientsWarnings: Array<{ field: string; message: string }>
+  prospectsWarnings: Array<{ field: string; message: string }>
+  planningWarnings: Array<{ field: string; message: string }>
 }
 
 export function RelationshipPool360({
   clients,
   prospects,
   planning,
-  clients_warnings,
-  prospects_warnings,
-  planning_warnings,
+  clientsWarnings,
+  prospectsWarnings,
+  planningWarnings,
 }: RelationshipPool360Props) {
   const [activeTab, setActiveTab] = useState<Tab>('clients')
 
@@ -472,13 +431,13 @@ export function RelationshipPool360({
       </div>
 
       {activeTab === 'clients' && (
-        <ClientsTab clients={clients} warnings={clients_warnings} />
+        <ClientsTab clients={clients} warnings={clientsWarnings} />
       )}
       {activeTab === 'prospects' && (
-        <ProspectsTab prospects={prospects} warnings={prospects_warnings} />
+        <ProspectsTab prospects={prospects} warnings={prospectsWarnings} />
       )}
       {activeTab === 'planning' && (
-        <PlanningTab planning={planning} warnings={planning_warnings} />
+        <PlanningTab planning={planning} warnings={planningWarnings} />
       )}
     </div>
   )
