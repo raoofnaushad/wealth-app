@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Invictus AI Agents",
-    "description": "API collection for the Invictus AI Agents platform.\n\n**Setup:** Start Docker services, API server, and Celery worker before running requests.\n\n**Auth:** All authenticated endpoints require a JWT Bearer token: `Authorization: Bearer <access_token>`.\n\n**MCP behavior:**\n- `enabled_mcps` is **strict opt-in** \u2014 omitting it (or sending `[]`) means **no MCP tools**. Pass an explicit list (e.g. `[\"engage\", \"plan\", \"insights\"]`) to enable modules.\n- Active modules: `engage` (21 tools), `plan` (14), `insights` (9). Stub modules `client-portal` and `deals` are **silently dropped** even if listed \u2014 their tools are not registered.\n- `FORBIDDEN` errors from an MCP server are **sticky for the run**: the offending server is removed from the toolset, and subsequent iterations don't see its tools.\n- `partial: true` envelopes from fan-out tools are surfaced (Copilot prepends a `[Partial result: ...]` annotation). Never retry partials.\n\n**Folder structure:**\n- **Infrastructure** \u2014 Health checks, discovery, error cases\n- **Sample Workflows** \u2014 Proof-of-concept workflows\n- **Workflows** \u2014 Production business workflows (Copilot, Unified Run, Quality Feedback)",
+    "description": "API collection for the Invictus AI Agents platform.\n\n**Setup:** Start Docker services, API server, and Celery worker before running requests.\n\n**Auth:** All authenticated endpoints require a JWT Bearer token: `Authorization: Bearer <access_token>`.\n\n**Run lifecycle:** Runs are async. After triggering a run (202), poll `GET /runs/{run_id}` for state. Valid `status` values are `queued`, `running`, `complete`, `failed`, `cancelled`. (HITL was removed on 2026-05-06 \u2014 there are no longer `awaiting_review` / `resuming` states or any `/runs/{id}/resume` endpoint.)\n\n**MCP behavior:**\n- `enabled_mcps` is **strict opt-in** \u2014 omitting it (or sending `[]`) means **no MCP tools**. Pass an explicit list (e.g. `[\"engage\", \"plan\", \"insights\"]`) to enable modules.\n- Active modules: `engage` (21 tools), `plan` (14), `insights` (9). Stub modules `client-portal` and `deals` are **silently dropped** even if listed \u2014 their tools are not registered.\n- `FORBIDDEN` errors from an MCP server are **sticky for the run**: the offending server is removed from the toolset, and subsequent iterations don't see its tools.\n- `partial: true` envelopes from fan-out tools are surfaced (Copilot prepends a `[Partial result: ...]` annotation). Never retry partials.\n\n**Folder structure:**\n- **Infrastructure** \u2014 Health checks, discovery, error cases, LLM security\n- **Sample Workflows** \u2014 Proof-of-concept workflows (echo, doc_research, web_search, calculator)\n- **Workflows** \u2014 Production business workflows (Client 360, Copilot, Daily Briefing legacy, Unified Run, Quality Feedback)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -15,6 +15,10 @@
     },
     {
       "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
       "value": ""
     },
     {
@@ -51,6 +55,32 @@
             },
             {
               "name": "GET /ready",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.test('Status is 200 (all OK) or 503 (DB/Redis unreachable)', function () {",
+                      "    pm.expect([200, 503]).to.include(pm.response.code);",
+                      "});",
+                      "pm.test('Reports db and redis connectivity', function () {",
+                      "    pm.expect(data).to.have.property('db');",
+                      "    pm.expect(data).to.have.property('redis');",
+                      "    pm.expect(['ok', 'error']).to.include(data.db);",
+                      "    pm.expect(['ok', 'error']).to.include(data.redis);",
+                      "});",
+                      "pm.test('200 only when both subsystems are ok', function () {",
+                      "    if (pm.response.code === 200) {",
+                      "        pm.expect(data.db).to.eql('ok');",
+                      "        pm.expect(data.redis).to.eql('ok');",
+                      "    }",
+                      "});"
+                    ]
+                  }
+                }
+              ],
               "request": {
                 "method": "GET",
                 "url": {
@@ -85,12 +115,17 @@
                       "pm.test('Returns array of workflow objects', function () {",
                       "    pm.expect(data).to.be.an('array');",
                       "    var names = data.map(function(w) { return w.name; });",
+                      "    // Sample workflows",
                       "    pm.expect(names).to.include('echo');",
-                      "    pm.expect(names).to.include('echo_hitl');",
                       "    pm.expect(names).to.include('doc_research');",
                       "    pm.expect(names).to.include('web_search');",
                       "    pm.expect(names).to.include('calculator');",
+                      "    // Production workflows",
                       "    pm.expect(names).to.include('copilot');",
+                      "    pm.expect(names).to.include('client_360');",
+                      "    pm.expect(names).to.include('daily_briefing');",
+                      "    // Removed (HITL retired 2026-05-06)",
+                      "    pm.expect(names).to.not.include('echo_hitl');",
                       "});",
                       "pm.test('Each workflow has name, modules, is_sample, description', function () {",
                       "    data.forEach(function(w) {",
@@ -105,6 +140,11 @@
                       "    var copilot = data.find(function(w) { return w.name === 'copilot'; });",
                       "    pm.expect(copilot.is_sample).to.eql(false);",
                       "    pm.expect(copilot.modules).to.include('engage');",
+                      "    var client360 = data.find(function(w) { return w.name === 'client_360'; });",
+                      "    pm.expect(client360.is_sample).to.eql(false);",
+                      "    pm.expect(client360.modules).to.include('engage');",
+                      "    pm.expect(client360.modules).to.include('plan');",
+                      "    pm.expect(client360.modules).to.include('insights');",
                       "    var echo = data.find(function(w) { return w.name === 'echo'; });",
                       "    pm.expect(echo.is_sample).to.eql(true);",
                       "});"
@@ -720,11 +760,11 @@
     },
     {
       "name": "Sample Workflows",
-      "description": "Proof-of-concept workflows for testing platform capabilities. These demonstrate how the agent framework works \u2014 triggering runs, polling status, HITL patterns, RAG integration, and MCP tool calling.\n\nNot intended for production use. See the **Workflows** folder for business workflows.",
+      "description": "Proof-of-concept workflows for testing platform capabilities. These demonstrate how the agent framework works \u2014 triggering runs, polling status, RAG integration, and tool calling.\n\nNot intended for production use. See the **Workflows** folder for business workflows.",
       "item": [
         {
           "name": "Echo",
-          "description": "Basic echo workflow \u2014 no HITL, completes immediately. Includes llm_config with Anthropic Claude Haiku.",
+          "description": "Basic echo workflow \u2014 completes immediately. Useful for smoke-testing auth, the run lifecycle, and llm_config plumbing. Includes llm_config with Anthropic Claude Haiku.",
           "item": [
             {
               "name": "1. Trigger Echo Run",
@@ -806,182 +846,6 @@
                       "    pm.expect(data.llm_config).to.not.be.null;",
                       "    pm.expect(data.llm_config.provider).to.eql('anthropic');",
                       "    pm.expect(data.llm_config.model).to.eql('claude-haiku-4-5-20251001');",
-                      "});"
-                    ]
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "{{auth_token}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/runs/{{run_id}}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "runs",
-                    "{{run_id}}"
-                  ]
-                }
-              }
-            }
-          ]
-        },
-        {
-          "name": "HITL (Human-in-the-Loop)",
-          "description": "Echo HITL workflow \u2014 pauses for human review, then resumes. Uses Anthropic Claude Haiku.",
-          "item": [
-            {
-              "name": "1. Trigger Echo HITL Run",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "var data = pm.response.json();",
-                      "pm.collectionVariables.set('run_id', data.run_id);",
-                      "pm.test('Status is 202', function () {",
-                      "    pm.response.to.have.status(202);",
-                      "});"
-                    ]
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "{{auth_token}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"message\": \"needs review\",\n  \"llm_config\": {\n    \"provider\": \"anthropic\",\n    \"model\": \"claude-haiku-4-5-20251001\"\n  }\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/agents/echo_hitl/run",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "agents",
-                    "echo_hitl",
-                    "run"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "2. Get Run Status (awaiting_review)",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "var data = pm.response.json();",
-                      "pm.test('Run is awaiting review', function () {",
-                      "    pm.expect(data.status).to.eql('awaiting_review');",
-                      "});",
-                      "pm.test('LLM config stored', function () {",
-                      "    pm.expect(data.llm_config.provider).to.eql('anthropic');",
-                      "    pm.expect(data.llm_config.model).to.eql('claude-haiku-4-5-20251001');",
-                      "});"
-                    ]
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "{{auth_token}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/runs/{{run_id}}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "runs",
-                    "{{run_id}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "3. Resume Run",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "pm.test('Status is 202', function () {",
-                      "    pm.response.to.have.status(202);",
-                      "});"
-                    ]
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "{{auth_token}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"feedback\": \"looks good\",\n  \"approved\": true\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/runs/{{run_id}}/resume",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "runs",
-                    "{{run_id}}",
-                    "resume"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "4. Get Run Status (complete)",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "var data = pm.response.json();",
-                      "pm.test('Run is complete', function () {",
-                      "    pm.expect(data.status).to.eql('complete');",
-                      "});",
-                      "pm.test('Output is correct', function () {",
-                      "    pm.expect(data.output.echoed).to.eql('needs review');",
-                      "    pm.expect(data.output.formatted).to.eql('Echo: needs review');",
                       "});"
                     ]
                   }
@@ -1528,6 +1392,247 @@
       "description": "Production business workflows for the Invictus platform. Each subfolder represents a real workflow used in the wealth management pipeline.\n\nAdd new workflow folders here as they are built.",
       "item": [
         {
+          "name": "Client 360",
+          "description": "Advisor-scoped Client 360 / Daily Briefing — the production morning briefing workflow.\n\n**Pipeline (6 phases):**\n1. `discover_clients` — calls `engage_list_my_clients` with the advisor's JWT to enumerate clients.\n2. `process_clients_fanout` — per-client deep dive against Engage / Plan / Insights, with a 3-hour PostgreSQL cache (advisor-agnostic) so a client touched by another advisor is reused.\n3. `run_macro_news` — single consolidated cross-client news search; articles are tagged with `affected_clients`.\n4. `fetch_calendar` — pulls upcoming events for meeting briefs.\n5. `generate_advisor_aggregations` — rollup: portfolio summary, segmentation, deployment gaps, top alerts, top news, meeting briefs.\n6. `generate_run_summary` — final markdown narrative.\n\n**Authentication contract — credentials live in headers, body is for data:**\n- `Authorization: Bearer <access_token>` (required) — 30-min JWT issued at `POST {auth_backend}/api/v1/auth/login`. Decoded by FastAPI for routing/auth and forwarded to every MCP server.\n- `X-Refresh-Token: <refresh_token>` (optional but **strongly recommended**) — 60-min refresh JWT from the same login response. When present, the workflow's `TokenManager` rotates the access token mid-run (proactively when < 5 min remain, reactively on a single `AUTH_FAILURE`). Without it, a long fan-out hits upstream auth failures once the 30-min access TTL elapses (root cause of the 2026-05-09 empty-briefing trace).\n- Body: `{ \"llm_config\": ... }` — no credentials.\n\nLogin once, paste the two raw JWTs into the `access_token` and `refresh_token` collection variables; the trigger request reads from `{{auth_token}}` (= `Bearer {{access_token}}`) and `{{refresh_token}}`.\n\n**Modules required:** `engage`, `plan`, `insights` (all three MCP servers must be reachable).\n\n**Output:** `{ discovery, clients, macro_news, calendar_events, advisor_summary, data_discrepancies, run_summary }`. Per-client briefings carry `data_gaps` (real failures) and `partial_data_notes` (documented expected upstream partials such as `documents` POST-not-supported or `transfers` 404).",
+          "item": [
+            {
+              "name": "1. Trigger Client 360",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.collectionVariables.set('run_id', data.run_id);",
+                      "pm.test('Status is 202', function () {",
+                      "    pm.response.to.have.status(202);",
+                      "});",
+                      "pm.test('Has run_id', function () {",
+                      "    pm.expect(data.run_id).to.not.be.undefined;",
+                      "});",
+                      "pm.test('Status is queued', function () {",
+                      "    pm.expect(data.status).to.eql('queued');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{auth_token}}"
+                  },
+                  {
+                    "key": "X-Refresh-Token",
+                    "value": "{{refresh_token}}",
+                    "description": "Optional. Refresh JWT (60-min TTL) issued at /auth/login. When present, the Client 360 workflow rotates the access token mid-run instead of failing on expiry. Leave blank to opt out."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"llm_config\": {\n    \"provider\": \"anthropic\",\n    \"model\": \"claude-haiku-4-5-20251001\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/agents/client_360/run",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "agents",
+                    "client_360",
+                    "run"
+                  ]
+                },
+                "description": "Trigger the production Client 360 / Daily Briefing run.\n\n**Headers:**\n- `Authorization: Bearer <access_token>` — required. Authenticates the API call and is forwarded to every Engage / Plan / Insights MCP server. Sourced from `{{auth_token}}` which expands to `Bearer {{access_token}}`.\n- `X-Refresh-Token: <refresh_token>` — optional but recommended. Lets the workflow's `TokenManager` rotate the access token mid-run (proactively when < 5 min remain, reactively on a single `AUTH_FAILURE`). Without it, runs longer than the 30-min access-token TTL will hit upstream auth failures partway through. Sourced from `{{refresh_token}}`.\n\n**Body:**\n- `llm_config` — optional model override. The body carries no credentials; tokens always travel in headers.\n\nSaves run_id to the collection variable for use in the next request.\n\n**Note:** This run is long — fan-out per client + macro news + calendar + summary. Expect 30s–5min depending on client count and cache hits. With `X-Refresh-Token` set, runs longer than 25 min still complete cleanly because the token gets rotated automatically."
+              }
+            },
+            {
+              "name": "2. Get Run Status — verify output",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.test('Status is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Workflow is client_360', function () {",
+                      "    pm.expect(data.workflow).to.eql('client_360');",
+                      "});",
+                      "pm.test('Output shape on complete', function () {",
+                      "    if (data.status === 'complete') {",
+                      "        pm.expect(data.output).to.have.property('discovery');",
+                      "        pm.expect(data.output).to.have.property('clients');",
+                      "        pm.expect(data.output).to.have.property('macro_news');",
+                      "        pm.expect(data.output).to.have.property('calendar_events');",
+                      "        pm.expect(data.output).to.have.property('advisor_summary');",
+                      "        pm.expect(data.output).to.have.property('run_summary');",
+                      "        pm.expect(data.output.clients).to.be.an('array');",
+                      "        pm.expect(data.output.run_summary).to.be.a('string');",
+                      "        pm.expect(data.output.run_summary.length).to.be.above(0);",
+                      "    }",
+                      "});",
+                      "pm.test('All 6 pipeline nodes recorded when complete', function () {",
+                      "    if (data.status === 'complete') {",
+                      "        var nodes = data.steps.map(function(s) { return s.node; });",
+                      "        pm.expect(nodes).to.include('discover_clients');",
+                      "        pm.expect(nodes).to.include('process_clients_fanout');",
+                      "        pm.expect(nodes).to.include('run_macro_news');",
+                      "        pm.expect(nodes).to.include('fetch_calendar');",
+                      "        pm.expect(nodes).to.include('generate_advisor_aggregations');",
+                      "        pm.expect(nodes).to.include('generate_run_summary');",
+                      "    }",
+                      "});",
+                      "pm.test('Status is one of the valid lowercase values', function () {",
+                      "    pm.expect(['queued','running','complete','failed','cancelled']).to.include(data.status);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{auth_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/runs/{{run_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "runs",
+                    "{{run_id}}"
+                  ]
+                },
+                "description": "Poll the run status. Tests verify the full Client 360 output envelope and that all 6 pipeline nodes ran. May need to be re-run several times until `status === 'complete'`."
+              }
+            },
+            {
+              "name": "3. Trigger via Unified Endpoint (auto-routed)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.collectionVariables.set('run_id', data.run_id);",
+                      "pm.test('Status is 202', function () {",
+                      "    pm.response.to.have.status(202);",
+                      "});",
+                      "pm.test('Routed to client_360', function () {",
+                      "    // Routing hints: 'client 360', 'daily briefing', 'morning brief',",
+                      "    // 'advisor briefing', 'my client review'",
+                      "    pm.expect(data.workflow).to.eql('client_360');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{auth_token}}"
+                  },
+                  {
+                    "key": "X-Refresh-Token",
+                    "value": "{{refresh_token}}",
+                    "description": "Optional. Required only for long-running workflows like client_360 — lets the workflow rotate the access token mid-run. Leave blank for short workflows."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Run my morning advisor briefing — give me the Client 360 across my book.\",\n  \"llm_config\": {\n    \"provider\": \"anthropic\",\n    \"model\": \"claude-haiku-4-5-20251001\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/agents/run",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "agents",
+                    "run"
+                  ]
+                },
+                "description": "Trigger Client 360 through the unified auto-routing endpoint. The router should match the message against the workflow's routing hints (`client 360`, `daily briefing`, `morning brief`, `advisor briefing`, `my client review`) and pick `client_360`."
+              }
+            },
+            {
+              "name": "4. Trigger via Unified — Explicit workflow",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.collectionVariables.set('run_id', data.run_id);",
+                      "pm.test('Status is 202', function () {",
+                      "    pm.response.to.have.status(202);",
+                      "});",
+                      "pm.test('Workflow matches requested', function () {",
+                      "    pm.expect(data.workflow).to.eql('client_360');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{auth_token}}"
+                  },
+                  {
+                    "key": "X-Refresh-Token",
+                    "value": "{{refresh_token}}",
+                    "description": "Optional. Required only for long-running workflows like client_360 — lets the workflow rotate the access token mid-run. Leave blank for short workflows."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Run client 360 daily briefing\",\n  \"workflow\": \"client_360\",\n  \"source_module\": \"engage\",\n  \"llm_config\": {\n    \"provider\": \"anthropic\",\n    \"model\": \"claude-haiku-4-5-20251001\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/agents/run",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "agents",
+                    "run"
+                  ]
+                },
+                "description": "Bypass auto-routing and trigger Client 360 explicitly via the unified endpoint. The `source_module` field is used to enforce module-scoped accessibility — `engage`, `plan`, and `insights` all have access to `client_360`."
+              }
+            }
+          ]
+        },
+        {
           "name": "Copilot Agent",
           "description": "Conversational ReAct agent with MCP, document research, and web search tools. Strict opt-in: `enabled_mcps` must be supplied to surface MCP tools. FORBIDDEN errors are sticky per-run; partial envelopes are annotated for the LLM, never retried.",
           "item": [
@@ -2043,6 +2148,175 @@
                     "run"
                   ]
                 }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Daily Briefing (legacy)",
+          "description": "Legacy daily advisor briefing \u2014 fetches client and prospect dashboard KPIs from Engage and produces a structured summary with a run narrative.\n\nWas previously registered as the `client_360` workflow; renamed to `daily_briefing` when the new advisor-scoped Client 360 workflow was introduced. Retained for A/B comparison.\n\n**Trigger:** POST with no body (zero-input workflow). JWT is forwarded to the Engage MCP server.\n\n**Output:** { clients, prospects, clients_warnings, prospects_warnings, run_summary }",
+          "item": [
+            {
+              "name": "1. Trigger Daily Briefing",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.collectionVariables.set('run_id', data.run_id);",
+                      "pm.test('Status is 202', function () {",
+                      "    pm.response.to.have.status(202);",
+                      "});",
+                      "pm.test('Has run_id', function () {",
+                      "    pm.expect(data.run_id).to.not.be.undefined;",
+                      "});",
+                      "pm.test('Workflow is daily_briefing', function () {",
+                      "    pm.expect(data.workflow).to.eql('daily_briefing');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{auth_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/agents/daily_briefing/run",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "agents",
+                    "daily_briefing",
+                    "run"
+                  ]
+                },
+                "description": "Trigger the legacy daily briefing run (was `client_360` before rename). No body required \u2014 the workflow always fetches clients and prospects dashboard KPIs from Engage using the authenticated user's JWT.\n\nSaves run_id to the collection variable for use in the next request."
+              }
+            },
+            {
+              "name": "2. Get Run Status \u2014 verify output",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.test('Status is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Run is complete', function () {",
+                      "    pm.expect(data.status).to.eql('complete');",
+                      "});",
+                      "pm.test('Output has clients section', function () {",
+                      "    pm.expect(data.output).to.have.property('clients');",
+                      "});",
+                      "pm.test('Output has prospects section', function () {",
+                      "    pm.expect(data.output).to.have.property('prospects');",
+                      "});",
+                      "pm.test('Output has run_summary', function () {",
+                      "    pm.expect(data.output.run_summary).to.be.a('string');",
+                      "    pm.expect(data.output.run_summary.length).to.be.above(0);",
+                      "});",
+                      "pm.test('3 pipeline steps recorded', function () {",
+                      "    var stepNames = data.steps.map(function(s) { return s.node; });",
+                      "    pm.expect(stepNames).to.include('fetch_clients_dashboard');",
+                      "    pm.expect(stepNames).to.include('fetch_prospects_dashboard');",
+                      "    pm.expect(stepNames).to.include('generate_summary');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{auth_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/runs/{{run_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "runs",
+                    "{{run_id}}"
+                  ]
+                },
+                "description": "Poll the run status. Uses the run_id saved by the trigger request.\n\nTests verify:\n- status == complete\n- output.clients is present\n- output.prospects is present\n- output.run_summary is a non-empty string\n- All 3 pipeline nodes are recorded in steps"
+              }
+            },
+            {
+              "name": "3. Trigger via Unified Endpoint (auto-routed)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var data = pm.response.json();",
+                      "pm.collectionVariables.set('run_id', data.run_id);",
+                      "pm.test('Status is 202', function () {",
+                      "    pm.response.to.have.status(202);",
+                      "});",
+                      "pm.test('Routed to client_360', function () {",
+                      "    pm.expect(data.workflow).to.eql('client_360');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{auth_token}}"
+                  },
+                  {
+                    "key": "X-Refresh-Token",
+                    "value": "{{refresh_token}}",
+                    "description": "Optional. This auto-routed test resolves to the client_360 workflow, which uses the refresh token to rotate the access JWT mid-run. Leave blank to opt out."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Generate my client 360 daily briefing\",\n  \"llm_config\": {\n    \"provider\": \"anthropic\",\n    \"model\": \"claude-haiku-4-5-20251001\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/agents/run",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "agents",
+                    "run"
+                  ]
+                },
+                "description": "Trigger Client 360 via the unified auto-routing endpoint. The LLM router should classify the message as client_360 based on routing hints.\n\nVerifies the router correctly identifies and routes to the client_360 workflow."
               }
             }
           ]
